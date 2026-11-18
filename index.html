@@ -79,6 +79,11 @@
   .info .tones .r { color: var(--root); }
   .info .tones .bl { color: var(--blue); }
   .info .pos { color: var(--muted); }
+  .scale-desc { padding: 0 4px 10px; font-size: .88rem; color: var(--muted); line-height: 1.45; }
+  .scale-desc .tag { display: inline-block; background: var(--card2); color: var(--text); border-radius: 999px;
+    padding: 2px 9px; margin: 2px 4px 2px 0; font-size: .78rem; font-weight: 600; }
+  .scale-desc .tag.hit { background: var(--accent); color: #1b1300; }
+  .toggle.disabled { opacity: .4; pointer-events: none; }
 
   .bigbtn { background: var(--card2); border: 1px solid var(--line); border-radius: 12px;
     padding: 12px 18px; font-weight: 700; font-size: 1rem; }
@@ -211,11 +216,8 @@
   <div class="card controls" id="keyCard">
     <label class="field"><span>Stimmung</span><select id="tuning"></select></label>
     <label class="field"><span>Grundton</span><select id="root"></select></label>
-    <div class="field"><span>Tonleiter</span>
-      <div class="seg" id="scale">
-        <button data-v="minor">Moll</button><button data-v="major">Dur</button>
-      </div>
-    </div>
+    <label class="field"><span>Genre</span><select id="genreSel"></select></label>
+    <label class="field"><span>Tonleiter</span><select id="scaleSel"></select></label>
     <div class="field"><span>Beschriftung</span>
       <div class="seg" id="labels">
         <button data-v="notes">Töne</button><button data-v="intervals">Intervalle</button><button data-v="none">Aus</button>
@@ -235,11 +237,12 @@
       </div>
     </div>
     <div class="info" id="info"></div>
+    <div class="scale-desc" id="scaleDesc"></div>
     <div class="rotate-hint">Tipp: Dreh dein Handy quer, dann siehst du mehr vom Griffbrett.</div>
     <div class="board-wrap" id="boardWrap"><svg id="board" class="board" xmlns="http://www.w3.org/2000/svg"></svg></div>
     <div class="legend">
       <span><i style="background:var(--root)"></i>Grundton</span>
-      <span><i style="background:var(--accent)"></i>Pentatonik-Ton</span>
+      <span><i style="background:var(--accent)"></i>Skalenton</span>
       <span><i style="background:var(--blue)"></i>Blue Note</span>
     </div>
     <p class="hint">Tippe auf einen Ton, um ihn zu hören.</p>
@@ -342,9 +345,9 @@
     <div class="board-wrap" id="backWrap"><svg id="backBoard" class="board" xmlns="http://www.w3.org/2000/svg"></svg></div>
     <div class="legend">
       <span><i style="background:var(--root)"></i>Grundton</span>
-      <span><i style="background:var(--accent)"></i>Pentatonik-Ton</span>
+      <span><i style="background:var(--accent)"></i>Skalenton</span>
       <span><i style="background:transparent;border:2.5px solid var(--ok)"></i>Ton des aktuellen Akkords</span>
-      <span><i style="background:transparent;border:2px dashed var(--ok)"></i>Akkordton außerhalb der Pentatonik</span>
+      <span><i style="background:transparent;border:2px dashed var(--ok)"></i>Akkordton außerhalb der Tonleiter</span>
     </div>
     <p class="hint">Die Lautstärken von Akkorden, Bass und Schlagzeug stellst du im Mischpult 🎚 unten ein.</p>
   </section>
@@ -442,10 +445,71 @@
   }
   const FRETS = 22;
 
+  /* ---------- Tonleitern ----------
+     family: Gruppe in der Auswahl, genres: wofür typisch, progs: passende Akkordfolgen (erste = Vorschlag) */
+  const IV_NAMES = ['1', 'b2', '2', 'b3', '3', '4', 'b5', '5', 'b6', '6', 'b7', '7'];
+  const mkScale = (name, steps, extra) =>
+    Object.assign({ name, steps, labels: steps.map(x => IV_NAMES[x]) }, extra);
+
   const SCALES = {
-    minor: { name: 'Moll-Pentatonik', steps: [0, 3, 5, 7, 10], labels: ['1', 'b3', '4', '5', 'b7'], blue: 6, blueLabel: 'b5' },
-    major: { name: 'Dur-Pentatonik',  steps: [0, 2, 4, 7, 9],  labels: ['1', '2', '3', '5', '6'],   blue: 3, blueLabel: 'b3' }
+    minor: mkScale('Moll-Pentatonik', [0, 3, 5, 7, 10], { family: 'Pentatonik', blue: 6, blueLabel: 'b5',
+      genres: ['bluesrock', 'stoner', 'prog'],
+      desc: 'Die Basis für Blues, Rock und Riffs. Mit Blue Note wird sie zur Blues-Tonleiter.',
+      progs: ['blues', 'minorBlues', 'stoner', 'desert', 'doom', 'gallop', 'i_VII_VI'] }),
+    major: mkScale('Dur-Pentatonik', [0, 2, 4, 7, 9], { family: 'Pentatonik', blue: 3, blueLabel: 'b3',
+      genres: ['bluesrock', 'fusion'],
+      desc: 'Fröhlich und offen. Klassisch für Southern Rock und Dur-Blues.',
+      progs: ['blues', 'I_IV_V', 'I_V_vi_IV', 'mixoRock'] }),
+    ionian: mkScale('Ionisch (Dur)', [0, 2, 4, 5, 7, 9, 11], { family: 'Kirchentonleitern',
+      genres: ['bluesrock'],
+      desc: 'Die normale Dur-Tonleiter. Hell und stabil, eher Pop und Rock als Stoner oder Metal.',
+      progs: ['I_IV_V', 'I_V_vi_IV'] }),
+    dorian: mkScale('Dorisch', [0, 2, 3, 5, 7, 9, 10], { family: 'Kirchentonleitern',
+      genres: ['bluesrock', 'stoner', 'fusion'],
+      desc: 'Moll mit großer Sexte (6): warm, groovig, etwas hoffnungsvoll. Sehr beliebt in Stoner-Jams und Fusion.',
+      progs: ['dorianVamp', 'minorBlues', 'stoner'] }),
+    phrygian: mkScale('Phrygisch', [0, 1, 3, 5, 7, 8, 10], { family: 'Kirchentonleitern',
+      genres: ['stoner', 'prog'],
+      desc: 'Moll mit kleiner Sekunde (b2): düster, bedrohlich, leicht orientalisch. Ein Metal-Klassiker.',
+      progs: ['phrygian', 'dissonant', 'doom'] }),
+    lydian: mkScale('Lydisch', [0, 2, 4, 6, 7, 9, 11], { family: 'Kirchentonleitern',
+      genres: ['prog', 'fusion'], labels: ['1', '2', '3', '#4', '5', '6', '7'],
+      desc: 'Dur mit übermäßiger Quarte (#4): schwebend, verträumt, „Science-Fiction“. Typisch für Prog und Fusion.',
+      progs: ['lydianVamp', 'I_V_vi_IV'] }),
+    mixolydian: mkScale('Mixolydisch', [0, 2, 4, 5, 7, 9, 10], { family: 'Kirchentonleitern',
+      genres: ['bluesrock', 'stoner', 'fusion'],
+      desc: 'Dur mit kleiner Septime (b7): rockig und bluesig. Passt über 7er-Akkorde und Desert-Rock-Riffs.',
+      progs: ['mixoRock', 'blues'] }),
+    aeolian: mkScale('Äolisch (natürliches Moll)', [0, 2, 3, 5, 7, 8, 10], { family: 'Kirchentonleitern',
+      genres: ['bluesrock', 'stoner', 'prog'],
+      desc: 'Das normale Moll: traurig und episch. Grundlage für die meisten Rock- und Metal-Riffs.',
+      progs: ['i_VI_VII', 'i_VII_VI', 'epic', 'i_iv_v', 'stoner', 'gallop'] }),
+    locrian: mkScale('Lokrisch', [0, 1, 3, 5, 6, 8, 10], { family: 'Kirchentonleitern',
+      genres: ['prog'],
+      desc: 'Mit b2 und b5: instabil und sehr dunkel. Selten pur, aber beliebt für dissonante Djent-Riffs.',
+      progs: ['dissonant', 'phrygian'] }),
+    harmonic: mkScale('Harmonisch Moll', [0, 2, 3, 5, 7, 8, 11], { family: 'Moll-Varianten',
+      genres: ['prog'],
+      desc: 'Moll mit großer Septime (7): dramatisch, neoklassisch. Typisch für Shred und Power Metal.',
+      progs: ['harmonicMinor', 'epic', 'gallop'] }),
+    phrygDom: mkScale('Phrygisch-Dominant', [0, 1, 4, 5, 7, 8, 10], { family: 'Moll-Varianten',
+      genres: ['prog'],
+      desc: 'Phrygisch mit großer Terz: orientalisch und exotisch. Der „Wüsten“-Klang in Metal und Prog.',
+      progs: ['phrygian', 'harmonicMinor'] }),
+    melodic: mkScale('Melodisch Moll', [0, 2, 3, 5, 7, 9, 11], { family: 'Moll-Varianten',
+      genres: ['fusion', 'prog'],
+      desc: 'Moll mit großer Sexte und Septime: elegant und jazzig. Vor allem in Fusion und Jazz-Rock.',
+      progs: ['dorianVamp', 'i_iv_v'] })
   };
+
+  const GENRES = {
+    all:       { name: 'Alle' },
+    bluesrock: { name: 'Blues & Rock',  order: ['minor', 'major', 'mixolydian', 'dorian', 'aeolian', 'ionian'] },
+    stoner:    { name: 'Stoner & Doom', order: ['minor', 'aeolian', 'dorian', 'phrygian', 'mixolydian'] },
+    prog:      { name: 'Prog & Metal',  order: ['minor', 'aeolian', 'phrygian', 'harmonic', 'phrygDom', 'locrian', 'lydian', 'melodic'] },
+    fusion:    { name: 'Jazz & Fusion', order: ['dorian', 'mixolydian', 'lydian', 'melodic', 'major'] }
+  };
+  const isPenta = () => scaleInfo().steps.length === 5;
 
   /* =========================================================
      2) Zustand + Speichern (localStorage, abgesichert)
@@ -454,6 +518,7 @@
   const DEFAULTS = {
     tab: 'board',
     tuning: 'std',
+    genre: 'all',
     root: 9,            // A
     scale: 'minor',
     position: 1,        // 0 = alle, 1–5 = Box
@@ -509,6 +574,8 @@
   }
   const state = loadState();
   if (!state.best || typeof state.best !== 'object') state.best = {};
+  if (!SCALES[state.scale]) state.scale = 'minor';
+  if (!GENRES[state.genre]) state.genre = 'all';
   // Alte Version hatte nur eine Lautstärke fürs Metronom
   if (typeof state.volume === 'number') { state.volMetro = state.volume; delete state.volume; }
   state.bpm = clamp(Math.round(Number(state.bpm) || 80), 40, 240);
@@ -529,7 +596,7 @@
     const r = relPc(midi), sc = scaleInfo();
     if (r === 0) return 'root';
     if (sc.steps.includes(r)) return 'scale';
-    if (state.blue && r === sc.blue) return 'blue';
+    if (state.blue && sc.blue !== undefined && r === sc.blue) return 'blue';
     return null;
   }
 
@@ -550,7 +617,25 @@
      Der Bundbereich dieser Box gilt dann für alle Saiten der echten Stimmung
      (so funktionieren auch Drop-Stimmungen und 7-Saiter).
      Geliefert werden alle Oktaven, die komplett aufs Griffbrett passen. */
+  /* 7-Ton-Skalen: Position p beginnt mit der p-ten Stufe auf der tiefsten Saite,
+     danach genau 3 Töne pro Saite (3NPS). Liefert die exakten Töne, alle passenden Oktaven. */
+  function shapes3nps(p) {
+    const sc = scaleInfo();
+    const rootFret = ((state.root - pcOf(TUNING[0])) % 12 + 12) % 12;
+    const shapes = [];
+    for (const octave of [-12, 0, 12]) {
+      const startMidi = TUNING[0] + rootFret + sc.steps[p] + octave;
+      const tones = [];
+      for (let m = startMidi; tones.length < NS * 3; m++) if (isScaleTone(m)) tones.push(m);
+      const notes = tones.map((midi, i) => { const s = Math.floor(i / 3); return { s, f: midi - TUNING[s], midi }; });
+      if (notes.every(n => n.f >= 0 && n.f <= FRETS)) shapes.push(notes);
+    }
+    return shapes;
+  }
+  const notesRange = (notes) => ({ min: Math.min(...notes.map(n => n.f)), max: Math.max(...notes.map(n => n.f)) });
+
   function boxRanges(p) {
+    if (!isPenta()) return shapes3nps(p).map(notesRange);
     const sc = scaleInfo();
     const ref = (TUNINGS[state.tuning] || TUNINGS.std).ref;
     const STD = [0, 5, 10, 15, 19, 24].map(x => ref + x);
@@ -571,6 +656,10 @@
   function boxActiveSet() {
     if (state.position === 0) return null;
     const set = new Set();
+    if (!isPenta()) {
+      shapes3nps(state.position - 1).forEach(sh => sh.forEach(n => set.add(keyOf(n.s, n.f))));
+      return set;
+    }
     for (const r of boxRanges(state.position - 1)) {
       for (let s = 0; s < NS; s++)
         for (let f = r.min; f <= r.max; f++)
@@ -633,13 +722,16 @@
   }
 
   // Sequenzen auf einen Weg anwenden
+  function positionCount() { return scaleInfo().steps.length; }
+
   function applySeq(path, seq) {
     const n = path.length;
     if (seq === 'g6') {
       // 6er-Gruppen, jede Gruppe startet zwei Töne (eine Saite) weiter – klassischer Metal-Lauf
       if (n < 6) return path.slice();
       const out = [];
-      for (let i = 0; i + 6 <= n; i += 2) out.push(...path.slice(i, i + 6));
+      const step = isPenta() ? 2 : 3;
+      for (let i = 0; i + 6 <= n; i += step) out.push(...path.slice(i, i + 6));
       return out;
     }
     if (seq === 'pedal') {
@@ -670,6 +762,7 @@
     const withBlue = state.blue;
     switch (state.runPattern) {
       case 'box': {
+        if (!isPenta()) { const sh = shapes3nps(state.runPos - 1)[0]; return [sh ? sh.slice() : []]; }
         const r = boxRange(state.runPos - 1);
         return [areaPath(r.min, r.max, withBlue)];
       }
@@ -679,6 +772,11 @@
         return [diagonalPath()];
       case 'walk': {
         // Alle 5 Boxen von tief nach hoch: Box auf, nächste Box ab, usw.
+        if (!isPenta()) {
+          const shapes = scaleInfo().steps.map((_, p) => shapes3nps(p)[0]).filter(Boolean)
+            .sort((a, b) => notesRange(a).min - notesRange(b).min);
+          return shapes.map((sh, i) => i % 2 ? sh.slice().reverse() : sh.slice());
+        }
         const ranges = [0, 1, 2, 3, 4].map(boxRange).sort((a, b) => a.min - b.min);
         return ranges.map((r, i) => {
           const p = areaPath(r.min, r.max, withBlue);
@@ -754,6 +852,15 @@
                   bars: [[0, 'maj', 'I'], [5, 'maj', 'IV'], [7, 'maj', 'V'], [7, 'maj', 'V']] },
     I_V_vi_IV:  { name: 'I – V – vi – IV', scales: ['major'],
                   bars: [[0, 'maj', 'I'], [7, 'maj', 'V'], [9, 'min', 'vi'], [5, 'maj', 'IV']] },
+    // ---- Modal ----
+    dorianVamp: { name: 'Dorisch: im7 – IV7', group: 'Modal',
+                  bars: [[0, 'm7', 'im7'], [0, 'm7', 'im7'], [5, '7', 'IV7'], [5, '7', 'IV7']] },
+    mixoRock:   { name: 'Mixolydisch: I – bVII – IV – I', group: 'Modal',
+                  bars: [[0, 'maj', 'I'], [10, 'maj', 'bVII'], [5, 'maj', 'IV'], [0, 'maj', 'I']] },
+    lydianVamp: { name: 'Lydisch: I – II', group: 'Modal',
+                  bars: [[0, 'maj', 'I'], [0, 'maj', 'I'], [2, 'maj', 'II'], [2, 'maj', 'II']] },
+    harmonicMinor: { name: 'Harmonisch Moll: i – bVI – V7', group: 'Prog / Metal', groove: 'metal',
+                  bars: [[0, 'min', 'i'], [8, 'maj', 'bVI'], [7, '7', 'V7'], [7, '7', 'V7']] },
     // ---- Stoner / Doom (Power-Chords) ----
     stoner:     { name: 'Stoner: i5 – bVII5 – bVI5 – bVII5', scales: ['minor'], group: 'Stoner / Doom', groove: 'stoner',
                   bars: [P5(0, 'i5'), P5(10, 'bVII5'), P5(8, 'bVI5'), P5(10, 'bVII5')] },
@@ -868,15 +975,53 @@
     const sc = scaleInfo();
     const tones = sc.steps.map((st, i) =>
       `<span class="${i === 0 ? 'r' : ''}">${NOTE_NAMES[(state.root + st) % 12]}</span>`).join('');
-    const blue = state.blue
+    const blue = state.blue && sc.blue !== undefined
       ? `<span class="bl">+ ${NOTE_NAMES[(state.root + sc.blue) % 12]} (Blue Note)</span>` : '';
     let pos = 'Alle Positionen';
     if (state.position > 0) {
       const ranges = boxRanges(state.position - 1).map(r => `Bund ${r.min}–${r.max}`);
-      pos = `Position ${state.position} · ${ranges.join(' und ')}`;
+      pos = `Position ${state.position}${isPenta() ? '' : ' (3 Töne pro Saite)'} · ${ranges.join(' und ') || 'passt nicht aufs Griffbrett'}`;
     }
     $('#info').innerHTML =
       `<b>${NOTE_NAMES[state.root]}-${sc.name}</b> <span class="tones">${tones}${blue}</span><br><span class="pos">${pos}</span>`;
+    const tags = sc.genres.map(g =>
+      `<span class="tag${g === state.genre ? ' hit' : ''}">${GENRES[g].name}</span>`).join('');
+    $('#scaleDesc').innerHTML = `${sc.desc}<br>Typisch für: ${tags}`;
+  }
+
+  /* ---------- Genre- und Tonleiter-Auswahl ---------- */
+  function renderScaleSelect() {
+    const label = (k) => SCALES[k].name;
+    let html = '';
+    if (state.genre === 'all') {
+      const fams = {};
+      Object.keys(SCALES).forEach(k => (fams[SCALES[k].family] = fams[SCALES[k].family] || []).push(k));
+      html = Object.entries(fams).map(([f, keys]) =>
+        `<optgroup label="${f}">${keys.map(k => `<option value="${k}">${label(k)}</option>`).join('')}</optgroup>`).join('');
+    } else {
+      // Erst die typischen Tonleitern des Genres (nach Wichtigkeit), dann der Rest
+      const order = GENRES[state.genre].order;
+      const rest = Object.keys(SCALES).filter(k => !order.includes(k));
+      html = `<optgroup label="★ Typisch für ${GENRES[state.genre].name}">` +
+        order.map(k => `<option value="${k}">★ ${label(k)}</option>`).join('') + '</optgroup>' +
+        `<optgroup label="Weitere">${rest.map(k => `<option value="${k}">${label(k)}</option>`).join('')}</optgroup>`;
+    }
+    $('#scaleSel').innerHTML = html;
+    $('#scaleSel').value = state.scale;
+  }
+
+  // Positions-Tasten passend zur Tonleiter (5 bei Pentatonik, 7 bei Kirchentonleitern)
+  function renderPositionButtons() {
+    const n = positionCount();
+    if (state.position > n) state.position = 1;
+    if (state.runPos > n) state.runPos = 1;
+    const nums = Array.from({ length: n }, (_, i) => `<button data-v="${i + 1}">${i + 1}</button>`).join('');
+    $('#position').innerHTML = '<button data-v="0">Alle</button>' + nums;
+    $('#bPosition').innerHTML = '<button data-v="0">Alle</button>' + nums;
+    $('#runPos').innerHTML = nums;
+    // Blue Note gibt es nur bei der Pentatonik
+    $('#blue').closest('.toggle').classList.toggle('disabled', !isPenta());
+    syncSegments();
   }
 
   // Griffbrett-Tab und Backing-Tab zeigen beide die gewählte Position
@@ -922,7 +1067,7 @@
           // Ton liegt in der (angezeigten) Skala: Ring um den Punkt
           p.push(`<circle cx="${x}" cy="${y}" r="${G.R + 3.5}" fill="none" stroke="#22c55e" stroke-width="${iv === 0 ? 3.5 : 2.5}"/>`);
         } else {
-          // Akkordton außerhalb der Pentatonik: gestrichelter Kreis mit Intervall
+          // Akkordton außerhalb der Tonleiter: gestrichelter Kreis mit Intervall
           p.push(`<circle cx="${x}" cy="${y}" r="${G.R - 1}" fill="#14261b" stroke="#22c55e" stroke-width="2" stroke-dasharray="3 2.5"/>`);
           p.push(`<text x="${x}" y="${y}" fill="#4ade80" font-size="10" font-weight="800" text-anchor="middle" dominant-baseline="central">${IV_LABEL[iv] || ''}</text>`);
         }
@@ -1575,10 +1720,14 @@
   function updateBackingUi() {
     // Akkordfolgen passend zur Tonleiter anbieten
     const sel = $('#progSel');
-    const opts = Object.entries(PROGS).filter(([, p]) => p.scales.includes(state.scale));
-    if (!opts.some(([k]) => k === state.prog)) { state.prog = opts[0][0]; saveState(); }
-    const groups = {};
-    opts.forEach(([k, p]) => { const g = p.group || 'Blues & Rock'; (groups[g] = groups[g] || []).push([k, p]); });
+    const fits = scaleInfo().progs.filter(k => PROGS[k]);
+    if (!PROGS[state.prog]) state.prog = fits[0];
+    const groups = { [`★ Passt zu ${scaleInfo().name}`]: fits.map(k => [k, PROGS[k]]) };
+    Object.entries(PROGS).forEach(([k, p]) => {
+      if (fits.includes(k)) return;
+      const g = p.group || 'Blues & Rock';
+      (groups[g] = groups[g] || []).push([k, p]);
+    });
     sel.innerHTML = Object.entries(groups).map(([g, list]) =>
       `<optgroup label="${g}">${list.map(([k, p]) => `<option value="${k}">${p.name}</option>`).join('')}</optgroup>`).join('');
     sel.value = state.prog;
@@ -1682,7 +1831,6 @@
      8) Bedienelemente verbinden
      ========================================================= */
   const SEGMENTS = [
-    { id: 'scale',     key: 'scale',     parse: String },
     { id: 'labels',    key: 'labels',    parse: String },
     { id: 'position',  key: 'position',  parse: Number },
     { id: 'bPosition', key: 'position',  parse: Number },
@@ -1703,6 +1851,11 @@
   function onSettingChange(key) {
     switch (key) {
       case 'root': case 'scale': case 'blue':
+        if (key === 'scale') {
+          renderPositionButtons();
+          // Passt die Akkordfolge nicht zur neuen Tonleiter, die vorgeschlagene nehmen
+          if (!scaleInfo().progs.includes(state.prog)) chooseProg(scaleInfo().progs[0]);
+        }
         if (key !== 'blue') { tr.backBar = 0; updateBackingUi(); }
         updateBoard(true); refreshRun(state.tab === 'runs'); break;
       case 'labels':
@@ -1773,13 +1926,34 @@
   bindCheck('chordTones', 'showChordTones', () => onSettingChange('showChordTones'));
 
   // Akkordfolge
-  $('#progSel').addEventListener('change', (e) => {
-    state.prog = e.target.value;
-    const p = PROGS[state.prog];
+  function chooseProg(k) {
+    state.prog = k;
+    const p = PROGS[k];
     if (p.groove) state.groove = p.groove;                        // passenden Groove vorschlagen
     else if (HEAVY.includes(state.groove)) state.groove = p.blues ? 'shuffle' : 'rock';
-    saveState(); syncSegments(); onSettingChange('prog');
+    saveState(); syncSegments();
+  }
+  $('#progSel').addEventListener('change', (e) => { chooseProg(e.target.value); onSettingChange('prog'); });
+
+  // Genre und Tonleiter
+  const genreSel = $('#genreSel');
+  genreSel.innerHTML = Object.entries(GENRES).map(([k, g]) => `<option value="${k}">${g.name}</option>`).join('');
+  genreSel.value = state.genre;
+  genreSel.addEventListener('change', () => {
+    state.genre = genreSel.value;
+    // Passt die aktuelle Tonleiter nicht zum Genre, die typischste wählen
+    if (state.genre !== 'all' && !GENRES[state.genre].order.includes(state.scale)) {
+      state.scale = GENRES[state.genre].order[0];
+      saveState();
+      renderScaleSelect();
+      onSettingChange('scale');
+    } else {
+      saveState();
+      renderScaleSelect();
+      renderInfo();
+    }
   });
+  $('#scaleSel').addEventListener('change', (e) => { state.scale = e.target.value; saveState(); onSettingChange('scale'); });
 
   // Backing-Taste: startet/stoppt alles, schaltet den Backing Track bei Bedarf ein
   $('#backBtn').addEventListener('click', () => {
@@ -1889,6 +2063,8 @@
   /* =========================================================
      9) Start
      ========================================================= */
+  renderScaleSelect();
+  renderPositionButtons();
   syncSegments();
   setBpm(state.bpm);
   renderBeatDots();
