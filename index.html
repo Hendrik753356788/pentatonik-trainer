@@ -209,6 +209,7 @@
 <main>
   <!-- ===================== Tonart (für Griffbrett und Läufe) ===================== -->
   <div class="card controls" id="keyCard">
+    <label class="field"><span>Stimmung</span><select id="tuning"></select></label>
     <label class="field"><span>Grundton</span><select id="root"></select></label>
     <div class="field"><span>Tonleiter</span>
       <div class="seg" id="scale">
@@ -272,12 +273,14 @@
       <div class="field"><span>Sequenz</span>
         <div class="seg" id="runSeq">
           <button data-v="linear">Linear</button><button data-v="g3">3er</button>
-          <button data-v="g4">4er</button><button data-v="thirds">Terzen</button>
+          <button data-v="g4">4er</button><button data-v="g6">6er</button><button data-v="thirds">Terzen</button>
+          <button data-v="pedal">Pedalton</button>
         </div>
       </div>
       <div class="field"><span>Rhythmus</span>
         <div class="seg" id="runRhythm">
           <button data-v="eighth">Achtel</button><button data-v="triplet">Triolen</button><button data-v="sixteenth">16tel</button>
+          <button data-v="sextuplet">Sextolen</button>
         </div>
       </div>
       <label class="toggle"><input type="checkbox" id="runSound"><span>Ton mitspielen</span></label>
@@ -314,6 +317,7 @@
       <div class="field"><span>Groove</span>
         <div class="seg" id="groove">
           <button data-v="rock">Rock</button><button data-v="shuffle">Shuffle</button><button data-v="funk">Funk</button>
+          <button data-v="stoner">Stoner</button><button data-v="metal">Metal</button><button data-v="djent">Djent</button>
         </div>
         <span class="note-small" id="grooveNote"></span>
       </div>
@@ -359,6 +363,7 @@
         <div class="seg" id="timeSig">
           <button data-v="4/4">4/4</button><button data-v="3/4">3/4</button>
           <button data-v="6/8">6/8</button><button data-v="12/8">12/8</button>
+          <button data-v="5/4">5/4</button><button data-v="7/8">7/8</button>
         </div>
       </div>
       <div class="field"><span>Unterteilung</span>
@@ -413,9 +418,28 @@
      ========================================================= */
   // Deutsche Notennamen (H statt B, B = Bb)
   const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
-  // Standardstimmung als MIDI-Noten, tiefe E-Saite zuerst
-  const TUNING = [40, 45, 50, 55, 59, 64];
-  const STRING_NAMES = ['E', 'A', 'D', 'G', 'H', 'e'];
+  // Stimmungen als MIDI-Noten, tiefste Saite zuerst.
+  // ref = Ton der gedachten tiefen E-Saite, von der aus die 5 Positionen berechnet werden
+  const TUNINGS = {
+    std:    { name: 'Standard (E)',          notes: [40, 45, 50, 55, 59, 64],     names: ['E', 'A', 'D', 'G', 'H', 'e'],      ref: 40 },
+    eb:     { name: 'Es-Standard (½ tiefer)', notes: [39, 44, 49, 54, 58, 63],    names: ['D#', 'G#', 'C#', 'F#', 'B', 'd#'], ref: 39 },
+    dropD:  { name: 'Drop D',                notes: [38, 45, 50, 55, 59, 64],     names: ['D', 'A', 'D', 'G', 'H', 'e'],      ref: 40 },
+    dStd:   { name: 'D-Standard',            notes: [38, 43, 48, 53, 57, 62],     names: ['D', 'G', 'C', 'F', 'A', 'd'],      ref: 38 },
+    dropC:  { name: 'Drop C',                notes: [36, 43, 48, 53, 57, 62],     names: ['C', 'G', 'C', 'F', 'A', 'd'],      ref: 38 },
+    cStd:   { name: 'C-Standard',            notes: [36, 41, 46, 51, 55, 60],     names: ['C', 'F', 'B', 'D#', 'G', 'c'],     ref: 36 },
+    dropB:  { name: 'Drop H',                notes: [35, 42, 47, 52, 56, 61],     names: ['H', 'F#', 'H', 'E', 'G#', 'c#'],   ref: 37 },
+    seven:  { name: '7-Saiter (H-Standard)', notes: [35, 40, 45, 50, 55, 59, 64], names: ['H', 'E', 'A', 'D', 'G', 'H', 'e'], ref: 40 },
+    sevenA: { name: '7-Saiter Drop A',       notes: [33, 40, 45, 50, 55, 59, 64], names: ['A', 'E', 'A', 'D', 'G', 'H', 'e'], ref: 40 }
+  };
+  let TUNING = TUNINGS.std.notes;
+  let STRING_NAMES = TUNINGS.std.names;
+  let NS = 6; // Anzahl Saiten
+  function applyTuning() {
+    const t = TUNINGS[state.tuning] || TUNINGS.std;
+    TUNING = t.notes;
+    STRING_NAMES = t.names;
+    NS = TUNING.length;
+  }
   const FRETS = 22;
 
   const SCALES = {
@@ -429,6 +453,7 @@
   const STORAGE_KEY = 'pentatonik-trainer-v1';
   const DEFAULTS = {
     tab: 'board',
+    tuning: 'std',
     root: 9,            // A
     scale: 'minor',
     position: 1,        // 0 = alle, 1–5 = Box
@@ -487,6 +512,7 @@
   // Alte Version hatte nur eine Lautstärke fürs Metronom
   if (typeof state.volume === 'number') { state.volMetro = state.volume; delete state.volume; }
   state.bpm = clamp(Math.round(Number(state.bpm) || 80), 40, 240);
+  applyTuning();
 
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
 
@@ -519,47 +545,36 @@
   const keyOf = (s, f) => s + '-' + f;
 
   /* Die 5 Positionen (CAGED-Boxen):
-     Position p beginnt auf der tiefen E-Saite mit der p-ten Skalenstufe.
-     Danach folgen aufsteigend jeweils 2 Skalentöne pro Saite.
-     So entstehen automatisch die klassischen Boxen (inkl. Versatz auf der H-Saite).
-     Jede Box wird in allen Oktaven geliefert, die komplett aufs Griffbrett passen. */
-  function boxShapes(p) {
+     Berechnet in einer gedachten Standardstimmung ab dem Referenzton der gewählten Stimmung:
+     Position p beginnt auf der tiefen Saite mit der p-ten Skalenstufe, danach je 2 Skalentöne pro Saite.
+     Der Bundbereich dieser Box gilt dann für alle Saiten der echten Stimmung
+     (so funktionieren auch Drop-Stimmungen und 7-Saiter).
+     Geliefert werden alle Oktaven, die komplett aufs Griffbrett passen. */
+  function boxRanges(p) {
     const sc = scaleInfo();
-    const rootFretLowE = ((state.root - pcOf(TUNING[0])) % 12 + 12) % 12;
-    const baseStart = rootFretLowE + sc.steps[p];
-    const shapes = [];
+    const ref = (TUNINGS[state.tuning] || TUNINGS.std).ref;
+    const STD = [0, 5, 10, 15, 19, 24].map(x => ref + x);
+    const rootFret = ((state.root - pcOf(ref)) % 12 + 12) % 12;
+    const ranges = [];
     for (const octave of [-12, 0, 12]) {
-      const startMidi = TUNING[0] + baseStart + octave;
+      const startMidi = ref + rootFret + sc.steps[p] + octave;
       const tones = [];
       for (let m = startMidi; tones.length < 12; m++) if (isScaleTone(m)) tones.push(m);
-      const notes = [];
-      for (let s = 0; s < 6; s++) {
-        for (let k = 0; k < 2; k++) notes.push({ s, f: tones[s * 2 + k] - TUNING[s] });
-      }
-      if (notes.every(n => n.f >= 0 && n.f <= FRETS)) shapes.push(notes);
+      const frets = tones.map((m, i) => m - STD[Math.floor(i / 2)]);
+      const min = Math.min(...frets), max = Math.max(...frets);
+      if (min >= 0 && max <= FRETS) ranges.push({ min, max });
     }
-    return shapes;
+    return ranges;
   }
 
-  function shapeRange(shape) {
-    let min = Infinity, max = -Infinity;
-    for (const n of shape) { min = Math.min(min, n.f); max = Math.max(max, n.f); }
-    return { min, max };
-  }
-
-  // Aktive Punkte der Box im Griffbrett-Tab
+  // Aktive Punkte der Box im Griffbrett-Tab (null = alle anzeigen)
   function boxActiveSet() {
+    if (state.position === 0) return null;
     const set = new Set();
-    if (state.position === 0) return null; // null = alles anzeigen
-    const sc = scaleInfo();
-    for (const shape of boxShapes(state.position - 1)) {
-      shape.forEach(n => set.add(keyOf(n.s, n.f)));
-      if (state.blue) {
-        const { min, max } = shapeRange(shape);
-        for (let s = 0; s < 6; s++)
-          for (let f = min; f <= max; f++)
-            if (relPc(TUNING[s] + f) === sc.blue) set.add(keyOf(s, f));
-      }
+    for (const r of boxRanges(state.position - 1)) {
+      for (let s = 0; s < NS; s++)
+        for (let f = r.min; f <= r.max; f++)
+          if (noteType(TUNING[s] + f)) set.add(keyOf(s, f));
     }
     return set;
   }
@@ -575,8 +590,8 @@
   function areaPath(fmin, fmax, withBlue) {
     const path = [];
     let last = -Infinity;
-    for (let s = 0; s < 6; s++) {
-      const limit = s < 5 ? TUNING[s + 1] + fmin : Infinity;
+    for (let s = 0; s < NS; s++) {
+      const limit = s < NS - 1 ? TUNING[s + 1] + fmin : Infinity;
       for (let f = fmin; f <= fmax; f++) {
         const midi = TUNING[s] + f;
         const t = noteType(midi);
@@ -589,34 +604,50 @@
 
   // Erste passende Box (tiefste Lage) einer Position
   function boxRange(p) {
-    const shapes = boxShapes(p);
-    return shapes.length ? shapeRange(shapes[0]) : { min: 0, max: 4 };
+    const ranges = boxRanges(p);
+    return ranges.length ? ranges[0] : { min: 0, max: 4 };
   }
 
   // Diagonal: 3 Töne pro Saite, wandert über das Griffbrett nach oben
   function diagonalPath() {
     const rootFret = ((state.root - pcOf(TUNING[0])) % 12 + 12) % 12;
-    const build = (startFret) => {
+    const build = (startFret, strict) => {
       const tones = [];
-      for (let m = TUNING[0] + startFret; tones.length < 18; m++) if (isScaleTone(m)) tones.push(m);
+      for (let m = TUNING[0] + startFret; tones.length < NS * 3; m++) if (isScaleTone(m)) tones.push(m);
       const path = tones.map((midi, i) => {
         const s = Math.floor(i / 3);
         return { s, f: midi - TUNING[s], midi };
       });
-      return path.every(n => n.f >= 0 && n.f <= FRETS) ? path : null;
+      const ok = path.every(n => n.f >= 0 && n.f <= FRETS);
+      return ok ? path : (strict ? null : path.filter(n => n.f >= 0 && n.f <= FRETS));
     };
     // Bevorzugt am Grundton starten, sonst den höchsten Skalenton darunter, der noch passt
     for (let f = rootFret; f >= 0; f--) {
       if (!isScaleTone(TUNING[0] + f)) continue;
-      const p = build(f);
+      const p = build(f, true);
       if (p) return p;
     }
-    return build(0) || [];
+    // Passt nicht komplett (z. B. 7-Saiter): so weit wie möglich
+    for (let f = 0; f < 12; f++) if (isScaleTone(TUNING[0] + f)) return build(f, false);
+    return [];
   }
 
   // Sequenzen auf einen Weg anwenden
   function applySeq(path, seq) {
     const n = path.length;
+    if (seq === 'g6') {
+      // 6er-Gruppen, jede Gruppe startet zwei Töne (eine Saite) weiter – klassischer Metal-Lauf
+      if (n < 6) return path.slice();
+      const out = [];
+      for (let i = 0; i + 6 <= n; i += 2) out.push(...path.slice(i, i + 6));
+      return out;
+    }
+    if (seq === 'pedal') {
+      // Pedalton: der erste Ton des Laufs wechselt sich mit allen anderen ab
+      const pedal = path[0], out = [];
+      for (let i = 1; i < n; i++) out.push(pedal, path[i]);
+      return out.length ? out : path.slice();
+    }
     const groups = { g3: 3, g4: 4 };
     if (groups[seq]) {
       const g = groups[seq];
@@ -698,13 +729,16 @@
     maj: { iv: [0, 4, 7],     suffix: ''   },
     min: { iv: [0, 3, 7],     suffix: 'm'  },
     '7': { iv: [0, 4, 7, 10], suffix: '7'  },
-    m7:  { iv: [0, 3, 7, 10], suffix: 'm7' }
+    m7:  { iv: [0, 3, 7, 10], suffix: 'm7' },
+    '5': { iv: [0, 7, 12],    suffix: '5'  }   // Power-Chord
   };
   const IV_LABEL = { 0: '1', 3: 'b3', 4: '3', 7: '5', 10: 'b7' };
+  const HEAVY = ['stoner', 'metal', 'djent'];   // Grooves mit verzerrter Gitarre
 
   // Akkorde als [Halbtöne über dem Grundton der Tonart, Typ, Stufe]
   const I7 = [0, '7', 'I7'], IV7 = [5, '7', 'IV7'], V7 = [7, '7', 'V7'];
   const im7 = [0, 'm7', 'im7'], ivm7 = [5, 'm7', 'ivm7'], bVI7 = [8, '7', 'bVI7'];
+ const P5 = (st, deg) => [st, '5', deg];
   const PROGS = {
     blues:      { name: '12-Takt-Blues (7er-Akkorde)', scales: ['minor', 'major'], blues: true,
                   bars: [I7, I7, I7, I7, IV7, IV7, I7, I7, V7, IV7, I7, V7] },
@@ -719,7 +753,23 @@
     I_IV_V:     { name: 'I – IV – V', scales: ['major'],
                   bars: [[0, 'maj', 'I'], [5, 'maj', 'IV'], [7, 'maj', 'V'], [7, 'maj', 'V']] },
     I_V_vi_IV:  { name: 'I – V – vi – IV', scales: ['major'],
-                  bars: [[0, 'maj', 'I'], [7, 'maj', 'V'], [9, 'min', 'vi'], [5, 'maj', 'IV']] }
+                  bars: [[0, 'maj', 'I'], [7, 'maj', 'V'], [9, 'min', 'vi'], [5, 'maj', 'IV']] },
+    // ---- Stoner / Doom (Power-Chords) ----
+    stoner:     { name: 'Stoner: i5 – bVII5 – bVI5 – bVII5', scales: ['minor'], group: 'Stoner / Doom', groove: 'stoner',
+                  bars: [P5(0, 'i5'), P5(10, 'bVII5'), P5(8, 'bVI5'), P5(10, 'bVII5')] },
+    desert:     { name: 'Desert: i5 – i5 – bIII5 – IV5', scales: ['minor'], group: 'Stoner / Doom', groove: 'stoner',
+                  bars: [P5(0, 'i5'), P5(0, 'i5'), P5(3, 'bIII5'), P5(5, 'IV5')] },
+    doom:       { name: 'Doom: i5 – bIII5 – IV5 – bV5 (Tritonus)', scales: ['minor'], group: 'Stoner / Doom', groove: 'stoner',
+                  bars: [P5(0, 'i5'), P5(3, 'bIII5'), P5(5, 'IV5'), P5(6, 'bV5')] },
+    // ---- Prog / Metal ----
+    gallop:     { name: 'Galopp: i5 – bVI5 – bVII5 – i5', scales: ['minor'], group: 'Prog / Metal', groove: 'metal',
+                  bars: [P5(0, 'i5'), P5(8, 'bVI5'), P5(10, 'bVII5'), P5(0, 'i5')] },
+    phrygian:   { name: 'Phrygisch: i5 – bII5', scales: ['minor'], group: 'Prog / Metal', groove: 'djent',
+                  bars: [P5(0, 'i5'), P5(0, 'i5'), P5(1, 'bII5'), P5(1, 'bII5')] },
+    epic:       { name: 'Episch: i5 – bVI5 – bIII5 – bVII5', scales: ['minor'], group: 'Prog / Metal', groove: 'djent',
+                  bars: [P5(0, 'i5'), P5(8, 'bVI5'), P5(3, 'bIII5'), P5(10, 'bVII5')] },
+    dissonant:  { name: 'Dissonant: i5 – bII5 – i5 – bV5', scales: ['minor'], group: 'Prog / Metal', groove: 'djent',
+                  bars: [P5(0, 'i5'), P5(1, 'bII5'), P5(0, 'i5'), P5(6, 'bV5')] }
   };
 
   // Aktuelle Akkordfolge als Liste von {root (Tonklasse), q, deg, name}
@@ -739,29 +789,30 @@
   const G = { LEFT: 30, OPEN: 36, FW: 54, TOP: 24, SP: 30, R: 11.5 };
   G.NUT_X = G.LEFT + G.OPEN;
   G.W = G.NUT_X + FRETS * G.FW + 12;
-  G.H = G.TOP + G.SP * 5 + 42;
+
 
   const xOfFret = (f) => f === 0 ? G.LEFT + G.OPEN / 2 : G.NUT_X + (f - 0.5) * G.FW;
-  const yOfString = (s) => G.TOP + (5 - s) * G.SP; // hohe e-Saite oben
+  const yOfString = (s) => G.TOP + (NS - 1 - s) * G.SP; // höchste Saite oben
 
   // active: Set mit hervorgehobenen Punkten oder null (= alle Skalentöne hervorheben)
   function renderBoard(svg, active) {
+    const H = G.TOP + G.SP * (NS - 1) + 42;
     svg.setAttribute('width', G.W);
-    svg.setAttribute('height', G.H);
-    svg.setAttribute('viewBox', `0 0 ${G.W} ${G.H}`);
+    svg.setAttribute('height', H);
+    svg.setAttribute('viewBox', `0 0 ${G.W} ${H}`);
 
     const p = [];
-    const boardTop = G.TOP - 14, boardH = G.SP * 5 + 28;
+    const boardTop = G.TOP - 14, boardH = G.SP * (NS - 1) + 28;
     const gid = 'wood-' + svg.id;
     p.push(`<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#3d2c20"/><stop offset="1" stop-color="#2a1e15"/></linearGradient></defs>`);
     p.push(`<rect x="${G.NUT_X}" y="${boardTop}" width="${FRETS * G.FW}" height="${boardH}" rx="3" fill="url(#${gid})"/>`);
 
     // Bundmarkierungen
-    const midY = G.TOP + G.SP * 2.5;
+    const midY = G.TOP + G.SP * (NS - 1) / 2;
     [3, 5, 7, 9, 15, 17, 19, 21].forEach(f =>
       p.push(`<circle cx="${xOfFret(f)}" cy="${midY}" r="6" fill="#e6d6b5" opacity=".28"/>`));
-    [G.TOP + G.SP * 1.5, G.TOP + G.SP * 3.5].forEach(y =>
+    [midY - G.SP, midY + G.SP].forEach(y =>
       p.push(`<circle cx="${xOfFret(12)}" cy="${y}" r="6" fill="#e6d6b5" opacity=".28"/>`));
 
     // Bundstäbchen und Sattel
@@ -772,9 +823,9 @@
     p.push(`<rect x="${G.NUT_X - 5}" y="${boardTop}" width="6" height="${boardH}" rx="2" fill="#ece6d8"/>`);
 
     // Saiten + Namen
-    for (let s = 0; s < 6; s++) {
+    for (let s = 0; s < NS; s++) {
       const y = yOfString(s);
-      const w = (2.6 - s * 0.32).toFixed(2);
+      const w = (1 + (NS - 1 - s) * 0.32).toFixed(2);
       p.push(`<line x1="${G.LEFT + 4}" y1="${y}" x2="${G.W - 12}" y2="${y}" stroke="#cfc7b8" stroke-width="${w}" opacity=".85"/>`);
       p.push(`<text x="${G.LEFT / 2}" y="${y}" fill="#9aa0ab" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central">${STRING_NAMES[s]}</text>`);
     }
@@ -787,7 +838,7 @@
     }
 
     // Töne
-    for (let s = 0; s < 6; s++) {
+    for (let s = 0; s < NS; s++) {
       for (let f = 0; f <= FRETS; f++) {
         const midi = TUNING[s] + f;
         const type = noteType(midi);
@@ -821,7 +872,7 @@
       ? `<span class="bl">+ ${NOTE_NAMES[(state.root + sc.blue) % 12]} (Blue Note)</span>` : '';
     let pos = 'Alle Positionen';
     if (state.position > 0) {
-      const ranges = boxShapes(state.position - 1).map(shapeRange).map(r => `Bund ${r.min}–${r.max}`);
+      const ranges = boxRanges(state.position - 1).map(r => `Bund ${r.min}–${r.max}`);
       pos = `Position ${state.position} · ${ranges.join(' und ')}`;
     }
     $('#info').innerHTML =
@@ -848,7 +899,7 @@
   // Liefert eine Funktion, die prüft, ob ein Bund im sichtbaren Übungsbereich liegt
   function positionFilter() {
     if (state.position === 0) return () => true;
-    const ranges = boxShapes(state.position - 1).map(shapeRange);
+    const ranges = boxRanges(state.position - 1);
     return (f) => ranges.some(r => f >= r.min - 1 && f <= r.max + 1);
   }
 
@@ -856,9 +907,9 @@
     const old = svg.querySelector('.ct-layer');
     if (old) old.remove();
     if (!curChord || !state.showChordTones) return;
-    const tones = new Map(CHORD_Q[curChord.q].iv.map(iv => [(curChord.root + iv) % 12, iv]));
+    const tones = new Map(CHORD_Q[curChord.q].iv.filter(iv => iv < 12).map(iv => [(curChord.root + iv) % 12, iv]));
     const p = [];
-    for (let s = 0; s < 6; s++) {
+    for (let s = 0; s < NS; s++) {
       for (let f = 0; f <= FRETS; f++) {
         if (!inRange(f)) continue;
         const midi = TUNING[s] + f;
@@ -1137,9 +1188,70 @@
     }
   }
 
-  // Akkord-Lage um E3–D#4, Bass um E1–D#2
+  // Verzerrte Gitarre (Fuzz) für Stoner/Metal: Power-Chord durch eine Sättigungskurve
+  let fuzzCurve = null;
+  function getFuzzCurve() {
+    if (!fuzzCurve) {
+      const n = 2048, k = 7;
+      fuzzCurve = new Float32Array(n);
+      for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; fuzzCurve[i] = Math.tanh(k * x) / Math.tanh(k); }
+    }
+    return fuzzCurve;
+  }
+
+  function fuzzChord(midis, t, dur, v, mute) {
+    const pre = ctx.createGain(); pre.gain.value = 0.5;
+    const sh = ctx.createWaveShaper(); sh.curve = getFuzzCurve(); sh.oversample = '2x';
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80;
+    const mid = ctx.createBiquadFilter(); mid.type = 'peaking'; mid.frequency.value = 800; mid.gain.value = state.groove === 'stoner' ? 4 : -3; mid.Q.value = 0.8;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = mute ? 1000 : 3800; lp.Q.value = 0.7;
+    const g = ctx.createGain();
+    const level = v * 0.2;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(level, t + 0.005);
+    if (mute) g.gain.setTargetAtTime(0.0001, t + Math.min(dur, 0.06), 0.035);   // Palm Mute: kurz
+    else { g.gain.setTargetAtTime(level * 0.75, t + 0.05, 0.4); g.gain.setTargetAtTime(0.0001, t + dur, 0.05); }
+    pre.connect(sh).connect(hp).connect(mid).connect(lp).connect(g).connect(bus.chords);
+    const end = t + (mute ? 0.35 : dur + 0.4);
+    for (const m of midis) {
+      for (const det of [-9, 9]) {
+        const o = ctx.createOscillator();
+        o.type = 'sawtooth'; o.frequency.value = mtof(m); o.detune.value = det;
+        o.connect(pre);
+        o.start(t); o.stop(end);
+      }
+    }
+  }
+
+  function crash(t, v) {
+    const n = noise(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 4000;
+    g.gain.setValueAtTime(v * 0.35, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+    n.connect(hp).connect(g).connect(bus.drums);
+    n.start(t); n.stop(t + 1);
+  }
+
+  function ride(t, v) {
+    const n = noise(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = 6500; bp.Q.value = 1.2;
+    g.gain.setValueAtTime(v * 0.4, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+    n.connect(bp).connect(g).connect(bus.drums);
+    n.start(t); n.stop(t + 0.4);
+  }
+
+  // Tonlage der Akkorde: E-Piano um E3–D#4. Power-Chords und Bass folgen der tiefsten Saite (Stimmung!)
   const chordVoicing = (ch) => CHORD_Q[ch.q].iv.map(iv => 52 + ((ch.root - 4 + 12) % 12) + iv);
-  const bassRootOf = (ch) => 28 + ((ch.root - 4 + 12) % 12);
+  const lowRootOf = (ch) => TUNING[0] + ((ch.root - pcOf(TUNING[0])) % 12 + 12) % 12;
+  const powerVoicing = (ch) => { const r = lowRootOf(ch); return [r, r + 7, r + 12]; };
+  const bassRootOf = (ch) => { let r = lowRootOf(ch) - 12; while (r < 26) r += 12; return r; };
+
+  // Akkord je nach Groove als E-Piano oder als verzerrter Power-Chord
+  function playChord(ch, t, dur, v, mute) {
+    if (HEAVY.includes(state.groove)) fuzzChord(powerVoicing(ch), t, dur, v, mute);
+    else chordHit(chordVoicing(ch), t, dur, v);
+  }
 
   /* Groove-Muster. s = Rasterschritt im Takt (12 pro Schlag), t = Startzeit.
      In 6/8 und 12/8 gibt es einen eigenen Triolen-Groove. */
@@ -1153,6 +1265,7 @@
     const top = ch.q === 'maj' ? 12 : 10;   // b7 bei Moll/7er-Akkorden, sonst Oktave
     const root = bassRootOf(ch);
     const voicing = chordVoicing(ch);
+    const chordHit = (_v, tt, d, vel) => playChord(ch, tt, d, vel, false); // Instrument passend zum Groove
 
     if (m.compound) {
       if (r % 4 !== 0) return;
@@ -1199,6 +1312,48 @@
         if (n === 2 || n === 5 || n === 10 || n === 13) chordHit(voicing, t, spb * 0.12, 0.55);
         break;
       }
+      case 'stoner': {
+        // Schwerer Half-Time-Groove: Snare nur auf 3, lange Fuzz-Akkorde
+        if (r % 6 !== 0) return;
+        const k = (s / 3) % 16;
+        ride(t, k % 4 === 0 ? 0.5 : 0.3);
+        if (k === 0 || k === 6 || k === 10) {
+          const d = (k === 6 ? 1 : 1.5) * spb;
+          kick(t, 1);
+          bassNote(root, t, d, 0.9);
+          playChord(ch, t, d, 0.95, false);
+        }
+        if (k === 8) snare(t, 1);
+        if (s === 0) crash(t, 0.5);
+        break;
+      }
+      case 'metal': {
+        // Galopp (Achtel + zwei 16tel) mit Double Bass und Palm Mutes
+        if (r % 3 !== 0) return;
+        const n = s / 3, k = n % 4;
+        if (n === 0) crash(t, 0.6); else if (k === 0) hat(t, 0.45);
+        if (n % 8 === 4) snare(t, 1);
+        if (k === 0 || k === 2 || k === 3) {
+          kick(t, 0.75);
+          bassNote(root, t, spb * 0.2, 0.8);
+          playChord(ch, t, n === 0 ? spb : spb * 0.2, 0.9, n !== 0);
+        }
+        break;
+      }
+      case 'djent': {
+        // Synkopierte Chugs in 3-3-2-Gruppen gegen den Takt, Half-Time-Snare
+        if (r % 3 !== 0) return;
+        const n = s / 3;
+        if (n % 4 === 0) hat(t, n === 0 ? 0.5 : 0.35);
+        if (n === 0) crash(t, 0.45);
+        if (n % 16 === 8) snare(t, 1);
+        if ([0, 3, 6].includes(n % 8)) {
+          kick(t, 0.9);
+          bassNote(root, t, spb * 0.2, 0.85);
+          playChord(ch, t, n === 0 ? spb * 0.5 : spb * 0.18, 0.95, n !== 0);
+        }
+        break;
+      }
     }
   }
 
@@ -1214,18 +1369,29 @@
   const tr = { running: false, timer: null, raf: null, nextTime: 0, step: 0, bar: 0, trainerBars: 0, queue: [],
               chord: null, backBar: 0 };
 
+  /* Takt-Struktur:
+     beats  = Anzahl Zählzeiten (Punkte in der Anzeige)
+     steps  = Rasterschritte pro Takt
+     pulses = Rasterschritte der Zählzeiten (dort klickt das Metronom laut)
+     sub    = Klicks pro Viertel */
   function meter() {
+    const simple = (beats) => ({ beats, sub: state.subdiv, compound: false, odd: false,
+      steps: beats * GRID, pulses: Array.from({ length: beats }, (_, i) => i * GRID) });
     switch (state.timeSig) {
-      case '6/8':  return { beats: 2, sub: 3, compound: true };  // Puls = punktierte Viertel
-      case '12/8': return { beats: 4, sub: 3, compound: true };
-      case '3/4':  return { beats: 3, sub: state.subdiv, compound: false };
-      default:     return { beats: 4, sub: state.subdiv, compound: false };
+      case '6/8':  return { beats: 2, sub: 3, compound: true, odd: false, steps: 2 * GRID, pulses: [0, GRID] };  // Puls = punktierte Viertel
+      case '12/8': return { beats: 4, sub: 3, compound: true, odd: false, steps: 4 * GRID, pulses: [0, GRID, 2 * GRID, 3 * GRID] };
+      // 7/8 gezählt als 2+2+3 Achtel, Tempo in Vierteln
+      case '7/8':  return { beats: 3, sub: 2, compound: false, odd: true, steps: 3.5 * GRID, pulses: [0, GRID, 2 * GRID] };
+      case '5/4':  return simple(5);
+      case '3/4':  return simple(3);
+      default:     return simple(4);
     }
   }
 
   // Töne pro Schlag im Lauf
   function notesPerBeat() {
     const compound = meter().compound;
+    if (state.runRhythm === 'sextuplet') return 6;
     if (state.runRhythm === 'sixteenth') return compound ? 6 : 4;
     if (state.runRhythm === 'triplet') return 3;
     return compound ? 3 : 2;
@@ -1274,8 +1440,7 @@
   function scheduler() {
     while (tr.nextTime < ctx.currentTime + LOOKAHEAD) {
       const m = meter();
-      const stepsPerBar = m.beats * GRID;
-      if (tr.step >= stepsPerBar) tr.step = 0;
+      if (tr.step >= m.steps) tr.step = 0;
       const s = tr.step, t = tr.nextTime;
 
       if (s === 0) onBarStart(t);
@@ -1284,11 +1449,12 @@
       if (state.backingOn) scheduleBacking(s, t, m);
 
       // Metronom-Klick
-      const clickEvery = GRID / m.sub;
-      if (s % clickEvery === 0) {
-        const kind = s === 0 ? 'accent' : s % GRID === 0 ? 'beat' : 'sub';
-        playClick(kind, t);
-        if (s % GRID === 0) tr.queue.push({ time: t, type: 'beat', beat: s / GRID });
+      const pulse = m.pulses.indexOf(s);
+      if (pulse >= 0) {
+        playClick(pulse === 0 ? 'accent' : 'beat', t);
+        tr.queue.push({ time: t, type: 'beat', beat: pulse });
+      } else if (s % (GRID / m.sub) === 0) {
+        playClick('sub', t);
       }
 
       // Lauf-Ton
@@ -1411,7 +1577,10 @@
     const sel = $('#progSel');
     const opts = Object.entries(PROGS).filter(([, p]) => p.scales.includes(state.scale));
     if (!opts.some(([k]) => k === state.prog)) { state.prog = opts[0][0]; saveState(); }
-    sel.innerHTML = opts.map(([k, p]) => `<option value="${k}">${p.name}</option>`).join('');
+    const groups = {};
+    opts.forEach(([k, p]) => { const g = p.group || 'Blues & Rock'; (groups[g] = groups[g] || []).push([k, p]); });
+    sel.innerHTML = Object.entries(groups).map(([g, list]) =>
+      `<optgroup label="${g}">${list.map(([k, p]) => `<option value="${k}">${p.name}</option>`).join('')}</optgroup>`).join('');
     sel.value = state.prog;
     $('#quickField').classList.toggle('hidden', !PROGS[state.prog].blues);
     const compound = meter().compound;
@@ -1473,15 +1642,19 @@
   }
 
   function updateSubdivUi() {
-    const compound = meter().compound;
-    $$('#subdiv button').forEach(b => { b.disabled = compound; });
-    $('#subdivNote').textContent = compound
+    const m = meter();
+    $$('#subdiv button').forEach(b => { b.disabled = m.compound || m.odd; });
+    $('#subdivNote').textContent = m.compound
       ? 'Bei 6/8 und 12/8 zählt das Tempo in punktierten Vierteln, die Achtel klicken automatisch mit.'
-      : '';
-    // Triolen ergeben im 6/8 keinen Sinn (Achtel sind dort schon Dreiergruppen)
+      : m.odd ? '7/8 wird als 2+2+3 gezählt (Tempo in Vierteln), die Achtel klicken leise mit.' : '';
+    // Triolen passen nicht ins 6/8 bzw. 7/8, Sextolen sind im 6/8 schon die 16tel
     const tripBtn = $('#runRhythm button[data-v="triplet"]');
-    tripBtn.disabled = compound;
-    if (compound && state.runRhythm === 'triplet') { state.runRhythm = 'eighth'; saveState(); syncSegments(); }
+    const sextBtn = $('#runRhythm button[data-v="sextuplet"]');
+    tripBtn.disabled = m.compound || m.odd;
+    sextBtn.disabled = m.compound;
+    if ((tripBtn.disabled && state.runRhythm === 'triplet') || (sextBtn.disabled && state.runRhythm === 'sextuplet')) {
+      state.runRhythm = 'eighth'; saveState(); syncSegments();
+    }
   }
 
   /* ---------- Tempo-Trainer ---------- */
@@ -1548,6 +1721,8 @@
         drawAllRings(); break;
       case 'runRhythm':
         updateRunInfo(); break;
+      case 'groove':
+        break;
       case 'runPos': case 'runDir': case 'runSeq': case 'runPattern': case 'range': case 'runLoop':
         refreshRun(key !== 'runDir' && key !== 'runSeq' && key !== 'runLoop'); break;
     }
@@ -1570,6 +1745,18 @@
   rootSel.value = state.root;
   rootSel.addEventListener('change', () => { state.root = Number(rootSel.value); saveState(); onSettingChange('root'); });
 
+  // Stimmung
+  const tunSel = $('#tuning');
+  tunSel.innerHTML = Object.entries(TUNINGS).map(([k, t]) => `<option value="${k}">${t.name}</option>`).join('');
+  tunSel.value = state.tuning;
+  tunSel.addEventListener('change', () => {
+    state.tuning = tunSel.value;
+    saveState();
+    applyTuning();
+    updateBoard(true);
+    refreshRun(state.tab === 'runs');
+  });
+
   // Checkboxen
   function bindCheck(id, key, change) {
     const el = $('#' + id);
@@ -1586,7 +1773,13 @@
   bindCheck('chordTones', 'showChordTones', () => onSettingChange('showChordTones'));
 
   // Akkordfolge
-  $('#progSel').addEventListener('change', (e) => { state.prog = e.target.value; saveState(); onSettingChange('prog'); });
+  $('#progSel').addEventListener('change', (e) => {
+    state.prog = e.target.value;
+    const p = PROGS[state.prog];
+    if (p.groove) state.groove = p.groove;                        // passenden Groove vorschlagen
+    else if (HEAVY.includes(state.groove)) state.groove = p.blues ? 'shuffle' : 'rock';
+    saveState(); syncSegments(); onSettingChange('prog');
+  });
 
   // Backing-Taste: startet/stoppt alles, schaltet den Backing Track bei Bedarf ein
   $('#backBtn').addEventListener('click', () => {
