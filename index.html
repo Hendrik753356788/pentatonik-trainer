@@ -167,6 +167,31 @@
     font-size: 1.4rem; font-weight: 900; display: grid; place-items: center; flex: none;
     box-shadow: 0 4px 14px rgba(245,165,36,.3); }
   .play.running { background: var(--root); color: #fff; box-shadow: 0 4px 14px rgba(239,68,68,.3); }
+  .mixbtn { width: 44px; height: 44px; border-radius: 12px; border: 0; background: var(--card2); font-size: 1.25rem; flex: none; }
+  .mixbtn.open { background: var(--accent); }
+
+  /* ===================== Mischpult ===================== */
+  .mixer { position: fixed; z-index: 11; right: 12px; bottom: calc(86px + env(safe-area-inset-bottom));
+    width: min(380px, calc(100vw - 24px)); background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px 16px 8px; box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    max-height: calc(100vh - 140px); overflow-y: auto; }
+  .mixer h2 { font-size: .95rem; margin: 0 0 8px; }
+  .mix-row { display: grid; grid-template-columns: 112px 1fr 42px; align-items: center; gap: 10px; padding: 4px 0; }
+  .mix-row label { font-weight: 600; font-size: .92rem; }
+  .mix-row.sub label { color: var(--muted); padding-left: 14px; font-weight: 500; }
+  .mix-row output { text-align: right; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+
+  /* ===================== Backing Track ===================== */
+  .chord-now { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .chord-now small { display: block; color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .6px; }
+  .chord-now .now b { font-size: 2.2rem; line-height: 1.1; color: var(--ok); }
+  .chord-now .next b { font-size: 1.4rem; line-height: 1.2; color: var(--muted); }
+  .chart { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+  .chart div { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 6px;
+    text-align: center; font-weight: 700; font-size: 1.05rem; }
+  .chart div small { display: block; color: var(--muted); font-size: .65rem; font-weight: 500; margin-bottom: 2px; }
+  .chart div.cur { background: rgba(34,197,94,.18); border-color: var(--ok); color: #fff; }
+  svg.board .ct-layer { pointer-events: none; }
 </style>
 </head>
 <body>
@@ -176,6 +201,7 @@
   <nav class="tabs" id="tabs">
     <button data-tab="board" class="active">Griffbrett</button>
     <button data-tab="runs">Läufe</button>
+    <button data-tab="backing">Backing</button>
     <button data-tab="metro">Metronom</button>
   </nav>
 </header>
@@ -280,6 +306,45 @@
     </div>
   </section>
 
+  <!-- ===================== Tab: Backing Track ===================== -->
+  <section id="tab-backing" class="tab">
+    <div class="card controls">
+      <label class="toggle"><input type="checkbox" id="backingOn"><span>Backing Track an</span></label>
+      <label class="field"><span>Akkordfolge</span><select id="progSel"></select></label>
+      <div class="field"><span>Groove</span>
+        <div class="seg" id="groove">
+          <button data-v="rock">Rock</button><button data-v="shuffle">Shuffle</button><button data-v="funk">Funk</button>
+        </div>
+        <span class="note-small" id="grooveNote"></span>
+      </div>
+      <label class="toggle" id="quickField"><input type="checkbox" id="quickChange"><span>Quick Change</span></label>
+      <label class="toggle"><input type="checkbox" id="chordTones"><span>Akkordtöne zeigen</span></label>
+      <div class="field"><span>Position</span>
+        <div class="seg" id="bPosition">
+          <button data-v="0">Alle</button><button data-v="1">1</button><button data-v="2">2</button>
+          <button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card chord-now">
+      <button id="backBtn" class="bigbtn primary">▶ Backing starten</button>
+      <div class="now"><small>Jetzt</small><b id="chordNow">–</b></div>
+      <div class="next"><small>Nächster</small><b id="chordNext">–</b></div>
+    </div>
+    <div class="chart" id="chart"></div>
+
+    <div class="rotate-hint">Tipp: Dreh dein Handy quer, dann siehst du mehr vom Griffbrett.</div>
+    <div class="board-wrap" id="backWrap"><svg id="backBoard" class="board" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="legend">
+      <span><i style="background:var(--root)"></i>Grundton</span>
+      <span><i style="background:var(--accent)"></i>Pentatonik-Ton</span>
+      <span><i style="background:transparent;border:2.5px solid var(--ok)"></i>Ton des aktuellen Akkords</span>
+      <span><i style="background:transparent;border:2px dashed var(--ok)"></i>Akkordton außerhalb der Pentatonik</span>
+    </div>
+    <p class="hint">Die Lautstärken von Akkorden, Bass und Schlagzeug stellst du im Mischpult 🎚 unten ein.</p>
+  </section>
+
   <!-- ===================== Tab: Metronom ===================== -->
   <section id="tab-metro" class="tab">
     <div class="card metro">
@@ -304,7 +369,7 @@
         <span class="note-small" id="subdivNote"></span>
       </div>
       <label class="field"><span>Lautstärke Klick</span>
-        <input type="range" id="volume" min="0" max="1" step="0.05" aria-label="Lautstärke">
+        <input type="range" data-vol="volMetro" min="0" max="1" step="0.05" aria-label="Lautstärke Metronom">
       </label>
       <div class="beats big" id="beatsBig"></div>
       <p class="hint">Der Tempo-Trainer (im Tab „Läufe“) gilt auch fürs Metronom.<br>
@@ -321,8 +386,21 @@
     <span><b id="bpmBar">80</b><small>BPM</small></span>
     <button data-d="1" aria-label="Schneller">+</button>
   </div>
+  <button id="mixBtn" class="mixbtn" aria-label="Mischpult">🎚</button>
   <button id="play" class="play" aria-label="Start">▶</button>
 </footer>
+
+<!-- ===================== Mischpult ===================== -->
+<div class="mixer hidden" id="mixer">
+  <h2>Lautstärken</h2>
+  <div class="mix-row"><label>Metronom</label><input type="range" data-vol="volMetro" min="0" max="1" step="0.05"><output data-out="volMetro"></output></div>
+  <div class="mix-row"><label>Noten</label><input type="range" data-vol="volNotes" min="0" max="1" step="0.05"><output data-out="volNotes"></output></div>
+  <div class="mix-row"><label>Backing Track</label><input type="range" data-vol="volBacking" min="0" max="1" step="0.05"><output data-out="volBacking"></output></div>
+  <div class="mix-row sub"><label>Akkorde</label><input type="range" data-vol="volChords" min="0" max="1" step="0.05"><output data-out="volChords"></output></div>
+  <div class="mix-row sub"><label>Bass</label><input type="range" data-vol="volBass" min="0" max="1" step="0.05"><output data-out="volBass"></output></div>
+  <div class="mix-row sub"><label>Schlagzeug</label><input type="range" data-vol="volDrums" min="0" max="1" step="0.05"><output data-out="volDrums"></output></div>
+  <p class="hint">„Noten“ sind die Töne der Läufe und das Antippen auf dem Griffbrett.</p>
+</div>
 
 <script>
 (() => {
@@ -360,7 +438,19 @@
     bpm: 80,
     timeSig: '4/4',
     subdiv: 1,
-    volume: 0.8,
+    // Mischpult (0–1)
+    volMetro: 0.8,
+    volNotes: 0.8,
+    volBacking: 0.8,
+    volChords: 0.7,
+    volBass: 0.8,
+    volDrums: 0.8,
+    // Backing Track
+    backingOn: true,
+    prog: 'blues',
+    groove: 'shuffle',
+    quickChange: false,
+    showChordTones: true,
     // Läufe
     runPattern: 'box',
     runPos: 1,
@@ -394,6 +484,8 @@
   }
   const state = loadState();
   if (!state.best || typeof state.best !== 'object') state.best = {};
+  // Alte Version hatte nur eine Lautstärke fürs Metronom
+  if (typeof state.volume === 'number') { state.volMetro = state.volume; delete state.volume; }
   state.bpm = clamp(Math.round(Number(state.bpm) || 80), 40, 240);
 
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
@@ -599,7 +691,50 @@
   }
 
   /* =========================================================
-     5) Griffbrett zeichnen (SVG) – wird von beiden Tabs genutzt
+     4b) Akkordfolgen für den Backing Track
+     ========================================================= */
+  // Akkordtypen: Intervalle ab Akkord-Grundton
+  const CHORD_Q = {
+    maj: { iv: [0, 4, 7],     suffix: ''   },
+    min: { iv: [0, 3, 7],     suffix: 'm'  },
+    '7': { iv: [0, 4, 7, 10], suffix: '7'  },
+    m7:  { iv: [0, 3, 7, 10], suffix: 'm7' }
+  };
+  const IV_LABEL = { 0: '1', 3: 'b3', 4: '3', 7: '5', 10: 'b7' };
+
+  // Akkorde als [Halbtöne über dem Grundton der Tonart, Typ, Stufe]
+  const I7 = [0, '7', 'I7'], IV7 = [5, '7', 'IV7'], V7 = [7, '7', 'V7'];
+  const im7 = [0, 'm7', 'im7'], ivm7 = [5, 'm7', 'ivm7'], bVI7 = [8, '7', 'bVI7'];
+  const PROGS = {
+    blues:      { name: '12-Takt-Blues (7er-Akkorde)', scales: ['minor', 'major'], blues: true,
+                  bars: [I7, I7, I7, I7, IV7, IV7, I7, I7, V7, IV7, I7, V7] },
+    minorBlues: { name: '12-Takt-Moll-Blues', scales: ['minor'], blues: true,
+                  bars: [im7, im7, im7, im7, ivm7, ivm7, im7, im7, bVI7, V7, im7, V7] },
+    i_iv_v:     { name: 'i – iv – v', scales: ['minor'],
+                  bars: [[0, 'min', 'i'], [5, 'min', 'iv'], [7, 'min', 'v'], [7, 'min', 'v']] },
+    i_VII_VI:   { name: 'i – VII – VI – VII', scales: ['minor'],
+                  bars: [[0, 'min', 'i'], [10, 'maj', 'VII'], [8, 'maj', 'VI'], [10, 'maj', 'VII']] },
+    i_VI_VII:   { name: 'i – VI – VII', scales: ['minor'],
+                  bars: [[0, 'min', 'i'], [0, 'min', 'i'], [8, 'maj', 'VI'], [10, 'maj', 'VII']] },
+    I_IV_V:     { name: 'I – IV – V', scales: ['major'],
+                  bars: [[0, 'maj', 'I'], [5, 'maj', 'IV'], [7, 'maj', 'V'], [7, 'maj', 'V']] },
+    I_V_vi_IV:  { name: 'I – V – vi – IV', scales: ['major'],
+                  bars: [[0, 'maj', 'I'], [7, 'maj', 'V'], [9, 'min', 'vi'], [5, 'maj', 'IV']] }
+  };
+
+  // Aktuelle Akkordfolge als Liste von {root (Tonklasse), q, deg, name}
+  function progression() {
+    const p = PROGS[state.prog] || PROGS.blues;
+    const bars = p.bars.slice();
+    if (p.blues && state.quickChange) bars[1] = bars[4]; // Quick Change: Takt 2 = IV
+    return bars.map(([st, q, deg]) => {
+      const root = (state.root + st) % 12;
+      return { root, q, deg, name: NOTE_NAMES[root] + CHORD_Q[q].suffix };
+    });
+  }
+
+  /* =========================================================
+     5) Griffbrett zeichnen (SVG) – wird von allen Tabs genutzt
      ========================================================= */
   const G = { LEFT: 30, OPEN: 36, FW: 54, TOP: 24, SP: 30, R: 11.5 };
   G.NUT_X = G.LEFT + G.OPEN;
@@ -693,12 +828,71 @@
       `<b>${NOTE_NAMES[state.root]}-${sc.name}</b> <span class="tones">${tones}${blue}</span><br><span class="pos">${pos}</span>`;
   }
 
+  // Griffbrett-Tab und Backing-Tab zeigen beide die gewählte Position
   function updateBoard(scroll) {
     renderInfo();
-    renderBoard($('#board'), boxActiveSet());
+    const active = boxActiveSet();
+    renderBoard($('#board'), active);
+    renderBoard($('#backBoard'), active);
+    drawAllRings();
     if (scroll && state.position > 0) {
       const r = boxRange(state.position - 1);
       scrollToFrets($('#boardWrap'), r.min, r.max, true);
+      scrollToFrets($('#backWrap'), r.min, r.max, true);
+    }
+  }
+
+  /* ---------- Akkordtöne als Ringe über dem Griffbrett ---------- */
+  let curChord = null; // aktuell klingender Akkord des Backing Tracks
+
+  // Liefert eine Funktion, die prüft, ob ein Bund im sichtbaren Übungsbereich liegt
+  function positionFilter() {
+    if (state.position === 0) return () => true;
+    const ranges = boxShapes(state.position - 1).map(shapeRange);
+    return (f) => ranges.some(r => f >= r.min - 1 && f <= r.max + 1);
+  }
+
+  function drawRings(svg, inRange) {
+    const old = svg.querySelector('.ct-layer');
+    if (old) old.remove();
+    if (!curChord || !state.showChordTones) return;
+    const tones = new Map(CHORD_Q[curChord.q].iv.map(iv => [(curChord.root + iv) % 12, iv]));
+    const p = [];
+    for (let s = 0; s < 6; s++) {
+      for (let f = 0; f <= FRETS; f++) {
+        if (!inRange(f)) continue;
+        const midi = TUNING[s] + f;
+        const iv = tones.get(pcOf(midi));
+        if (iv === undefined) continue;
+        const x = xOfFret(f), y = yOfString(s);
+        const dot = svg.querySelector(`.note[data-key="${keyOf(s, f)}"]`);
+        if (dot && dot.classList.contains('dim')) continue;   // abgeblendete Töne nicht markieren
+        if (dot) {
+          // Ton liegt in der (angezeigten) Skala: Ring um den Punkt
+          p.push(`<circle cx="${x}" cy="${y}" r="${G.R + 3.5}" fill="none" stroke="#22c55e" stroke-width="${iv === 0 ? 3.5 : 2.5}"/>`);
+        } else {
+          // Akkordton außerhalb der Pentatonik: gestrichelter Kreis mit Intervall
+          p.push(`<circle cx="${x}" cy="${y}" r="${G.R - 1}" fill="#14261b" stroke="#22c55e" stroke-width="2" stroke-dasharray="3 2.5"/>`);
+          p.push(`<text x="${x}" y="${y}" fill="#4ade80" font-size="10" font-weight="800" text-anchor="middle" dominant-baseline="central">${IV_LABEL[iv] || ''}</text>`);
+        }
+      }
+    }
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'ct-layer');
+    g.innerHTML = p.join('');
+    svg.appendChild(g);
+  }
+
+  function drawAllRings() {
+    const pos = positionFilter();
+    drawRings($('#board'), pos);
+    drawRings($('#backBoard'), pos);
+    if (run.path.length) {
+      const frets = run.path.map(n => n.f);
+      const min = Math.min(...frets), max = Math.max(...frets);
+      drawRings($('#runBoard'), (f) => f >= min && f <= max);
+    } else {
+      drawRings($('#runBoard'), () => false);
     }
   }
 
@@ -711,6 +905,7 @@
     renderBoard(svg, active);
     run.els = new Map($$('#runBoard .note').map(g => [g.dataset.key, g]));
     run.curEl = null;
+    if (curChord) drawAllRings();
   }
 
   function scrollRunToStart(smooth) {
@@ -780,6 +975,9 @@
      6) Audio (Web Audio API)
      ========================================================= */
   let ctx = null, master = null;
+  // Mischpult: getrennte Wege für Metronom, Noten und Backing Track (Akkorde, Bass, Schlagzeug)
+  const bus = {};
+  const BUS_KEYS = { metro: 'volMetro', notes: 'volNotes', backing: 'volBacking', chords: 'volChords', bass: 'volBass', drums: 'volDrums' };
 
   function ensureAudio() {
     if (!ctx) {
@@ -787,7 +985,18 @@
       ctx = new AC();
       master = ctx.createGain();
       master.gain.value = 0.9;
-      master.connect(ctx.destination);
+      // Sanfter Limiter, damit es bei vielen Spuren nicht übersteuert
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -10; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.15;
+      master.connect(comp).connect(ctx.destination);
+      for (const name of Object.keys(BUS_KEYS)) bus[name] = ctx.createGain();
+      bus.metro.connect(master);
+      bus.notes.connect(master);
+      bus.backing.connect(master);
+      bus.chords.connect(bus.backing);
+      bus.bass.connect(bus.backing);
+      bus.drums.connect(bus.backing);
+      applyMix(true);
       // Neuere iOS-Versionen: Wiedergabe als "Medien" statt als Klingelton
       try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* ignorieren */ }
     }
@@ -795,12 +1004,24 @@
     return ctx;
   }
 
+  // Lautstärken aus dem Zustand auf die Busse übertragen (quadratisch = natürlicheres Gefühl)
+  function applyMix(immediate) {
+    if (!ctx) return;
+    for (const [name, key] of Object.entries(BUS_KEYS)) {
+      const v = Math.pow(Number(state[key]) || 0, 2);
+      if (immediate) bus[name].gain.value = v;
+      else bus[name].gain.setTargetAtTime(v, ctx.currentTime, 0.02);
+    }
+  }
+
+  const mtof = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+
   // Einfacher gezupfter Gitarrenton, optional zu einem geplanten Zeitpunkt
   function pluck(midi, when, level) {
     const c = ensureAudio();
     const t = Math.max(when || 0, c.currentTime + 0.005);
     const peak = level || 0.4;
-    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    const freq = mtof(midi);
 
     const o1 = c.createOscillator(); o1.type = 'triangle'; o1.frequency.value = freq;
     const o2 = c.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = freq;
@@ -813,21 +1034,172 @@
     env.gain.exponentialRampToValueAtTime(peak, t + 0.005);
     env.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
 
-    o1.connect(lp); o2.connect(mix2).connect(lp); lp.connect(env).connect(master);
+    o1.connect(lp); o2.connect(mix2).connect(lp); lp.connect(env).connect(bus.notes);
     o1.start(t); o2.start(t); o1.stop(t + 1.5); o2.stop(t + 1.5);
   }
 
   function playClick(kind, t) {
-    const vol = state.volume * (kind === 'sub' ? 0.35 : kind === 'beat' ? 0.7 : 1);
-    if (vol <= 0.001) return;
+    const vol = kind === 'sub' ? 0.35 : kind === 'beat' ? 0.7 : 1;
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.type = 'sine';
     o.frequency.value = kind === 'accent' ? 1650 : kind === 'beat' ? 1100 : 800;
     g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
-    o.connect(g).connect(master);
+    o.connect(g).connect(bus.metro);
     o.start(t); o.stop(t + 0.06);
+  }
+
+  /* ---------- Instrumente des Backing Tracks ---------- */
+  let noiseBuf = null;
+  function noise() {
+    if (!noiseBuf) {
+      noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuf;
+    return src;
+  }
+
+  function kick(t, v) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+    g.gain.setValueAtTime(v, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+    o.connect(g).connect(bus.drums);
+    o.start(t); o.stop(t + 0.4);
+  }
+
+  function snare(t, v) {
+    const n = noise(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 1300;
+    g.gain.setValueAtTime(v * 0.7, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
+    n.connect(hp).connect(g).connect(bus.drums);
+    n.start(t); n.stop(t + 0.2);
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.type = 'triangle'; o.frequency.value = 185;
+    og.gain.setValueAtTime(v * 0.6, t);
+    og.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    o.connect(og).connect(bus.drums);
+    o.start(t); o.stop(t + 0.1);
+  }
+
+  function hat(t, v) {
+    const n = noise(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 7500;
+    g.gain.setValueAtTime(v * 0.35, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
+    n.connect(hp).connect(g).connect(bus.drums);
+    n.start(t); n.stop(t + 0.06);
+  }
+
+  function bassNote(midi, t, dur, v) {
+    const f = mtof(midi);
+    const o = ctx.createOscillator(), o2 = ctx.createOscillator();
+    o.type = 'sawtooth'; o.frequency.value = f;
+    o2.type = 'sine'; o2.frequency.value = f;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(900, t);
+    lp.frequency.exponentialRampToValueAtTime(300, t + Math.max(0.1, dur));
+    lp.Q.value = 2;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(v * 0.5, t + 0.008);
+    g.gain.setTargetAtTime(v * 0.3, t + 0.05, 0.15);
+    g.gain.setTargetAtTime(0.0001, t + dur, 0.03);
+    o.connect(lp); o2.connect(lp); lp.connect(g).connect(bus.bass);
+    o.start(t); o2.start(t); o.stop(t + dur + 0.25); o2.stop(t + dur + 0.25);
+  }
+
+  // E-Piano-artiger Akkord
+  function chordHit(midis, t, dur, v) {
+    const per = v * 0.32 / Math.sqrt(midis.length);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(per, t + 0.012);
+    g.gain.setTargetAtTime(per * 0.55, t + 0.04, 0.25);
+    g.gain.setTargetAtTime(0.0001, t + dur, 0.06);
+    lp.connect(g).connect(bus.chords);
+    for (const m of midis) {
+      const f = mtof(m);
+      const a = ctx.createOscillator(), b = ctx.createOscillator();
+      a.type = 'triangle'; a.frequency.value = f;
+      b.type = 'sine'; b.frequency.value = f * 2; b.detune.value = 4;
+      const bg = ctx.createGain(); bg.gain.value = 0.3;
+      a.connect(lp); b.connect(bg).connect(lp);
+      a.start(t); b.start(t); a.stop(t + dur + 0.4); b.stop(t + dur + 0.4);
+    }
+  }
+
+  // Akkord-Lage um E3–D#4, Bass um E1–D#2
+  const chordVoicing = (ch) => CHORD_Q[ch.q].iv.map(iv => 52 + ((ch.root - 4 + 12) % 12) + iv);
+  const bassRootOf = (ch) => 28 + ((ch.root - 4 + 12) % 12);
+
+  /* Groove-Muster. s = Rasterschritt im Takt (12 pro Schlag), t = Startzeit.
+     In 6/8 und 12/8 gibt es einen eigenen Triolen-Groove. */
+  function scheduleBacking(s, t, m) {
+    const ch = tr.chord;
+    if (!ch) return;
+    const spb = 60 / state.bpm;             // Sekunden pro Schlag
+    const b = Math.floor(s / GRID), r = s % GRID;
+    const iv = CHORD_Q[ch.q].iv;
+    const third = iv[1];
+    const top = ch.q === 'maj' ? 12 : 10;   // b7 bei Moll/7er-Akkorden, sonst Oktave
+    const root = bassRootOf(ch);
+    const voicing = chordVoicing(ch);
+
+    if (m.compound) {
+      if (r % 4 !== 0) return;
+      const k = r / 4;                      // Achtel 0, 1, 2 im Schlag
+      hat(t, k === 0 ? 0.55 : 0.32);
+      if (k === 0) (b % 2 === 0 ? kick : snare)(t, b % 2 === 0 ? 0.9 : 0.75);
+      if (k === 0) bassNote(root + (b % 2 ? 7 : 0), t, spb * 0.6, 0.8);
+      if (k === 2) bassNote(root + (b % 2 ? third : 7), t, spb * 0.3, 0.6);
+      chordHit(voicing, t, spb / 3 * 0.85, k === 0 ? 0.55 : 0.32);
+      return;
+    }
+
+    switch (state.groove) {
+      case 'rock': {
+        if (r % 6 !== 0) return;            // Achtel
+        hat(t, r === 0 ? 0.55 : 0.35);
+        if (r === 0 && b % 2 === 0) kick(t, 0.95);
+        if (r === 6 && b === 2) kick(t, 0.7);
+        if (r === 0 && b % 2 === 1) snare(t, 0.85);
+        bassNote(root + (r === 6 && b === m.beats - 1 ? 7 : 0), t, spb * 0.45, 0.75);
+        if (r === 0 && b % 2 === 0) chordHit(voicing, t, spb * Math.min(2, m.beats - b) * 0.95, 0.6);
+        break;
+      }
+      case 'shuffle': {
+        if (r !== 0 && r !== 8) return;     // geswingte Achtel (lang–kurz)
+        const off = r === 8;
+        hat(t, off ? 0.3 : 0.5);
+        if (!off && b % 2 === 0) kick(t, 0.9);
+        if (!off && b % 2 === 1) snare(t, 0.8);
+        const boogie = [0, third, 7, 9, top, 9, 7, third];
+        bassNote(root + boogie[((b % 4) * 2 + (off ? 1 : 0)) % 8], t, spb * (off ? 0.3 : 0.6), 0.75);
+        chordHit(voicing, t, spb * (off ? 0.25 : 0.5), off ? 0.35 : 0.5);
+        break;
+      }
+      case 'funk': {
+        if (r % 3 !== 0) return;            // 16tel
+        const n = (b * 4 + r / 3) % 16;
+        hat(t, n % 2 === 0 ? 0.45 : 0.22);
+        if (n === 0 || n === 6 || n === 10) kick(t, 0.9);
+        if (n === 4 || n === 12) snare(t, 0.9);
+        if (n === 7 || n === 15) snare(t, 0.18);     // Ghost Notes
+        const line = { 0: 0, 3: 0, 6: 12, 8: 0, 10: top, 11: 12, 14: 7 };
+        if (line[n] !== undefined) bassNote(root + line[n], t, spb * 0.2, 0.85);
+        if (n === 2 || n === 5 || n === 10 || n === 13) chordHit(voicing, t, spb * 0.12, 0.55);
+        break;
+      }
+    }
   }
 
   /* =========================================================
@@ -839,7 +1211,8 @@
   const LOOKAHEAD = 0.12;
   const INTERVAL_MS = 25;
 
-  const tr = { running: false, timer: null, raf: null, nextTime: 0, step: 0, bar: 0, trainerBars: 0, queue: [] };
+  const tr = { running: false, timer: null, raf: null, nextTime: 0, step: 0, bar: 0, trainerBars: 0, queue: [],
+              chord: null, backBar: 0 };
 
   function meter() {
     switch (state.timeSig) {
@@ -858,8 +1231,18 @@
     return compound ? 3 : 2;
   }
 
-  function onBarStart() {
+  function onBarStart(t) {
     tr.bar++;
+    // Backing Track: nächster Akkord (eine Akkordfolge-Zeile pro Takt)
+    if (state.backingOn) {
+      const prog = progression();
+      const idx = tr.backBar % prog.length;
+      tr.chord = prog[idx];
+      tr.backBar++;
+      tr.queue.push({ time: t, type: 'chord', idx });
+    } else {
+      tr.chord = null;
+    }
     // Lauf beginnt immer auf der Eins
     if (run.armed && tr.bar >= run.startAtBar) {
       run.armed = false;
@@ -895,7 +1278,10 @@
       if (tr.step >= stepsPerBar) tr.step = 0;
       const s = tr.step, t = tr.nextTime;
 
-      if (s === 0) onBarStart();
+      if (s === 0) onBarStart(t);
+
+      // Backing Track
+      if (state.backingOn) scheduleBacking(s, t, m);
 
       // Metronom-Klick
       const clickEvery = GRID / m.sub;
@@ -937,6 +1323,7 @@
       if (ev.type === 'beat') highlightBeat(ev.beat);
       else if (ev.type === 'note') { setCurrentNote(ev.key); run.shownIdx = ev.idx; uiDirty = true; }
       else if (ev.type === 'runEnd') { setCurrentNote(null); uiDirty = true; }
+      else if (ev.type === 'chord') showChord(ev.idx);
     }
     if (uiDirty) {
       uiDirty = false;
@@ -952,6 +1339,8 @@
     tr.step = 0;
     tr.bar = 0;
     tr.trainerBars = 0;
+    tr.backBar = 0;
+    tr.chord = null;
     tr.queue = [];
     tr.nextTime = ctx.currentTime + 0.08;
     if (state.trainerOn) setBpm(state.trainerStart);
@@ -969,6 +1358,7 @@
     updateTrainerStatus();
     updateRunInfo();
     updateRunButton();
+    updateBackButton();
   }
 
   function stopTransport() {
@@ -980,11 +1370,55 @@
     run.armed = false;
     highlightBeat(-1);
     setCurrentNote(null);
+    tr.chord = null;
+    showChord(-1);
     const btn = $('#play');
     btn.textContent = '▶'; btn.classList.remove('running'); btn.setAttribute('aria-label', 'Start');
     updateTrainerStatus();
     updateRunInfo();
     updateRunButton();
+    updateBackButton();
+  }
+
+  /* ---------- Backing-Track-Anzeige ---------- */
+  function renderChart() {
+    const prog = progression();
+    $('#chart').innerHTML = prog.map((c, i) =>
+      `<div data-i="${i}"><small>${i + 1} · ${c.deg}</small>${c.name}</div>`).join('');
+    $('#chart').style.gridTemplateColumns = `repeat(${Math.min(4, prog.length)}, 1fr)`;
+  }
+
+  // idx = aktueller Takt der Akkordfolge, -1 = nichts
+  function showChord(idx) {
+    const prog = progression();
+    curChord = idx >= 0 ? prog[idx % prog.length] : null;
+    $$('#chart div').forEach((el, i) => el.classList.toggle('cur', i === idx));
+    $('#chordNow').textContent = curChord ? curChord.name : (state.backingOn ? prog[0].name : '–');
+    $('#chordNext').textContent = curChord ? prog[(idx + 1) % prog.length].name : (state.backingOn && prog[1] ? prog[1].name : '–');
+    drawAllRings();
+  }
+
+  function updateBackButton() {
+    const b = $('#backBtn');
+    const on = tr.running;
+    b.textContent = on ? '■ Stoppen' : '▶ Backing starten';
+    b.classList.toggle('primary', !on);
+    b.classList.toggle('stop', on);
+  }
+
+  function updateBackingUi() {
+    // Akkordfolgen passend zur Tonleiter anbieten
+    const sel = $('#progSel');
+    const opts = Object.entries(PROGS).filter(([, p]) => p.scales.includes(state.scale));
+    if (!opts.some(([k]) => k === state.prog)) { state.prog = opts[0][0]; saveState(); }
+    sel.innerHTML = opts.map(([k, p]) => `<option value="${k}">${p.name}</option>`).join('');
+    sel.value = state.prog;
+    $('#quickField').classList.toggle('hidden', !PROGS[state.prog].blues);
+    const compound = meter().compound;
+    $$('#groove button').forEach(b => { b.disabled = compound; });
+    $('#grooveNote').textContent = compound ? 'Im 6/8 und 12/8 spielt die Begleitung einen eigenen Triolen-Groove.' : '';
+    renderChart();
+    showChord(-1);
   }
 
   // Play-Taste unten: im Tab „Läufe“ mit Lauf, sonst nur Metronom
@@ -1078,6 +1512,8 @@
     { id: 'scale',     key: 'scale',     parse: String },
     { id: 'labels',    key: 'labels',    parse: String },
     { id: 'position',  key: 'position',  parse: Number },
+    { id: 'bPosition', key: 'position',  parse: Number },
+    { id: 'groove',    key: 'groove',    parse: String },
     { id: 'timeSig',   key: 'timeSig',   parse: String },
     { id: 'subdiv',    key: 'subdiv',    parse: Number },
     { id: 'runPos',    key: 'runPos',    parse: Number },
@@ -1094,13 +1530,22 @@
   function onSettingChange(key) {
     switch (key) {
       case 'root': case 'scale': case 'blue':
+        if (key !== 'blue') { tr.backBar = 0; updateBackingUi(); }
         updateBoard(true); refreshRun(state.tab === 'runs'); break;
       case 'labels':
         updateBoard(false); renderRunBoard(); break;
       case 'position':
         updateBoard(true); break;
       case 'timeSig': case 'subdiv':
-        tr.step = 0; renderBeatDots(); updateSubdivUi(); break;
+        tr.step = 0; renderBeatDots(); updateSubdivUi(); updateBackingUi(); break;
+      case 'prog': case 'quickChange':
+        tr.backBar = 0; updateBackingUi(); break;
+      case 'backingOn':
+        tr.backBar = 0;
+        if (!state.backingOn) tr.chord = null;
+        showChord(-1); break;
+      case 'showChordTones':
+        drawAllRings(); break;
       case 'runRhythm':
         updateRunInfo(); break;
       case 'runPos': case 'runDir': case 'runSeq': case 'runPattern': case 'range': case 'runLoop':
@@ -1136,6 +1581,19 @@
   bindCheck('countIn', 'countIn');
   bindCheck('runLoop', 'runLoop', () => onSettingChange('runLoop'));
   bindCheck('trainerOn', 'trainerOn', updateTrainerStatus);
+  bindCheck('backingOn', 'backingOn', () => onSettingChange('backingOn'));
+  bindCheck('quickChange', 'quickChange', () => onSettingChange('quickChange'));
+  bindCheck('chordTones', 'showChordTones', () => onSettingChange('showChordTones'));
+
+  // Akkordfolge
+  $('#progSel').addEventListener('change', (e) => { state.prog = e.target.value; saveState(); onSettingChange('prog'); });
+
+  // Backing-Taste: startet/stoppt alles, schaltet den Backing Track bei Bedarf ein
+  $('#backBtn').addEventListener('click', () => {
+    if (tr.running) { stopTransport(); return; }
+    if (!state.backingOn) { state.backingOn = true; $('#backingOn').checked = true; saveState(); onSettingChange('backingOn'); }
+    startTransport(false);
+  });
 
   // Lauf-Auswahl und Bundbereich
   const patSel = $('#runPattern');
@@ -1183,6 +1641,10 @@
         scrollToFrets($('#boardWrap'), r.min, r.max, false);
       }
       if (tab === 'runs' && !run.playing) scrollRunToStart(false);
+      if (tab === 'backing' && state.position > 0) {
+        const r = boxRange(state.position - 1);
+        scrollToFrets($('#backWrap'), r.min, r.max, false);
+      }
     });
   }
   $('#tabs').addEventListener('click', (e) => {
@@ -1195,10 +1657,29 @@
   $('#bpmRange').addEventListener('input', (e) => setBpm(Number(e.target.value)));
   $('#tap').addEventListener('click', tapTempo);
 
-  // Lautstärke
-  const vol = $('#volume');
-  vol.value = state.volume;
-  vol.addEventListener('input', () => { state.volume = Number(vol.value); saveState(); });
+  // Mischpult: alle Regler mit data-vol (auch doppelte) bleiben synchron
+  function syncVolumes() {
+    $$('[data-vol]').forEach(el => { el.value = state[el.dataset.vol]; });
+    $$('[data-out]').forEach(el => { el.textContent = Math.round(state[el.dataset.out] * 100) + '%'; });
+  }
+  $$('[data-vol]').forEach(el => el.addEventListener('input', () => {
+    state[el.dataset.vol] = Number(el.value);
+    syncVolumes();
+    applyMix(false);
+    saveState();
+  }));
+  $('#mixBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = $('#mixer').classList.toggle('hidden') === false;
+    $('#mixBtn').classList.toggle('open', open);
+  });
+  // Tippen außerhalb schließt das Mischpult
+  document.addEventListener('click', (e) => {
+    if (!$('#mixer').classList.contains('hidden') && !e.target.closest('#mixer') && !e.target.closest('#mixBtn')) {
+      $('#mixer').classList.add('hidden');
+      $('#mixBtn').classList.remove('open');
+    }
+  });
 
   // Start / Stopp
   $('#play').addEventListener('click', togglePlay);
@@ -1226,7 +1707,10 @@
   updateRunInfo();
   updateRunButton();
   updateTrainerStatus();
-  showTab(['board', 'runs', 'metro'].includes(state.tab) ? state.tab : 'board');
+  syncVolumes();
+  updateBackingUi();
+  updateBackButton();
+  showTab(['board', 'runs', 'backing', 'metro'].includes(state.tab) ? state.tab : 'board');
 })();
 </script>
 </body>
