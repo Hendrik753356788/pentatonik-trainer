@@ -19,6 +19,7 @@
     --accent: #f5a524;     /* Skalentöne / Akzentfarbe */
     --root: #ef4444;       /* Grundton */
     --blue: #3b82f6;       /* Blue Note */
+    --ok: #22c55e;
     --radius: 14px;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -35,21 +36,26 @@
   .top h1 { font-size: 1.15rem; margin: 0; letter-spacing: .2px; }
   .top h1 span { color: var(--accent); }
   .tabs { display: flex; background: var(--card); border-radius: 999px; padding: 4px; }
-  .tabs button { border: 0; background: transparent; padding: 8px 16px; border-radius: 999px;
+  .tabs button { border: 0; background: transparent; padding: 8px 14px; border-radius: 999px;
     color: var(--muted); font-weight: 600; }
   .tabs button.active { background: var(--card2); color: var(--text); }
 
   main { padding: 0 12px; max-width: 1400px; margin: 0 auto; }
   .tab { display: none; }
   .tab.active { display: block; }
+  .hidden { display: none !important; }
 
   /* ===================== Karten & Bedienelemente ===================== */
   .card { background: var(--card); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .card h2 { font-size: .95rem; margin: 0 0 10px; }
   .controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; }
   .field { display: flex; flex-direction: column; gap: 6px; }
   .field > span { font-size: .75rem; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
-  select { background: var(--card2); border: 1px solid var(--line); border-radius: 10px;
-    padding: 9px 12px; min-width: 90px; font-weight: 600; font-size: 1rem; }
+  select, input[type=number] { background: var(--card2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 12px; font-weight: 600; font-size: 1rem; }
+  select { min-width: 80px; }
+  input[type=number] { width: 84px; }
+  .range-pick { display: flex; align-items: center; gap: 8px; color: var(--muted); }
 
   .seg { display: inline-flex; background: var(--card2); border-radius: 10px; padding: 3px; flex-wrap: wrap; }
   .seg button { border: 0; background: transparent; padding: 8px 13px; border-radius: 8px;
@@ -59,12 +65,13 @@
 
   .toggle { display: inline-flex; align-items: center; gap: 10px; background: var(--card2);
     border-radius: 10px; padding: 8px 14px; font-weight: 600; user-select: none; cursor: pointer; }
-  .toggle input { appearance: none; width: 38px; height: 22px; border-radius: 999px; background: #3a3f4b;
-    position: relative; margin: 0; transition: background .15s; cursor: pointer; }
+  .toggle input { appearance: none; -webkit-appearance: none; width: 38px; height: 22px; border-radius: 999px;
+    background: #3a3f4b; position: relative; margin: 0; transition: background .15s; cursor: pointer; flex: none; }
   .toggle input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
     border-radius: 50%; background: #fff; transition: transform .15s; }
-  .toggle input:checked { background: var(--blue); }
+  .toggle input:checked { background: var(--accent); }
   .toggle input:checked::after { transform: translateX(16px); }
+  .toggle.blue input:checked { background: var(--blue); }
 
   .info { padding: 2px 4px 10px; font-size: .95rem; line-height: 1.5; }
   .info b { color: var(--accent); }
@@ -73,28 +80,44 @@
   .info .tones .bl { color: var(--blue); }
   .info .pos { color: var(--muted); }
 
+  .bigbtn { background: var(--card2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 18px; font-weight: 700; font-size: 1rem; }
+  .bigbtn.primary { background: var(--accent); color: #1b1300; border: 0; }
+  .bigbtn.stop { background: var(--root); color: #fff; border: 0; }
+  .bigbtn:active { transform: scale(.97); }
+
   /* ===================== Griffbrett ===================== */
   .board-wrap { overflow-x: auto; overflow-y: hidden; background: var(--card); border-radius: var(--radius);
-    padding: 10px 0; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
-  #board { display: block; }
-  #board .note { cursor: pointer; }
-  #board .note circle { stroke: rgba(0,0,0,.45); stroke-width: 1.5; }
-  #board .note text { font-size: 10.5px; font-weight: 800; text-anchor: middle; dominant-baseline: central;
+    padding: 10px 0; -webkit-overflow-scrolling: touch; scrollbar-width: thin; margin-bottom: 12px; }
+  .board svg, svg.board { display: block; }
+  svg.board .note { cursor: pointer; }
+  svg.board .note circle { stroke: rgba(0,0,0,.45); stroke-width: 1.5; transform-box: fill-box; transform-origin: center; }
+  svg.board .note text { font-size: 10.5px; font-weight: 800; text-anchor: middle; dominant-baseline: central;
     pointer-events: none; }
-  #board .note.scale circle { fill: var(--accent); }
-  #board .note.scale text { fill: #1b1300; }
-  #board .note.root circle { fill: var(--root); }
-  #board .note.root text { fill: #fff; }
-  #board .note.blue circle { fill: var(--blue); }
-  #board .note.blue text { fill: #fff; }
-  #board .note.dim { opacity: .22; }
-  #board .note.hit circle { stroke: #fff; stroke-width: 3; }
+  svg.board .note.scale circle { fill: var(--accent); }
+  svg.board .note.scale text { fill: #1b1300; }
+  svg.board .note.root circle { fill: var(--root); }
+  svg.board .note.root text { fill: #fff; }
+  svg.board .note.blue circle { fill: var(--blue); }
+  svg.board .note.blue text { fill: #fff; }
+  svg.board .note.dim { opacity: .22; }
+  svg.board .note.hit circle { stroke: #fff; stroke-width: 3; }
+  svg.board .note.cur circle { stroke: #fff; stroke-width: 3.5; transform: scale(1.3); }
+  svg.board.playing .note:not(.cur):not(.dim) { opacity: .55; }
 
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 4px 0; font-size: .85rem; color: var(--muted); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 0 4px; font-size: .85rem; color: var(--muted); }
   .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
   .hint { color: var(--muted); font-size: .85rem; margin: 8px 4px; }
   .rotate-hint { display: none; color: var(--muted); font-size: .85rem; margin: 0 4px 8px; }
   @media (orientation: portrait) and (max-width: 600px) { .rotate-hint { display: block; } }
+
+  /* ===================== Läufe ===================== */
+  .run-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .run-info { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+  .run-info b { color: var(--text); }
+  .run-info .best { color: var(--ok); font-weight: 700; }
+  .trainer-status { margin-top: 10px; font-size: .9rem; color: var(--muted); }
+  .trainer-status b { color: var(--text); }
 
   /* Querformat auf dem Handy: alles etwas kompakter */
   @media (orientation: landscape) and (max-height: 500px) {
@@ -102,7 +125,7 @@
     .card { padding: 10px; margin-bottom: 8px; }
     .controls { gap: 8px 16px; }
     .seg button { padding: 6px 11px; }
-    select { padding: 6px 10px; }
+    select, input[type=number] { padding: 6px 10px; }
     .info { padding-bottom: 6px; font-size: .88rem; }
   }
 
@@ -113,9 +136,9 @@
   .bpm-big small { display: block; color: var(--muted); letter-spacing: 2px; margin-top: 4px; }
   input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
   .btnrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-  .btnrow button, .bigbtn { background: var(--card2); border: 1px solid var(--line); border-radius: 12px;
+  .btnrow button { background: var(--card2); border: 1px solid var(--line); border-radius: 12px;
     padding: 12px 0; font-weight: 700; font-size: 1rem; }
-  .btnrow button:active, .bigbtn:active { transform: scale(.97); }
+  .btnrow button:active { transform: scale(.97); }
   #tap { background: var(--accent); color: #1b1300; border: 0; }
   .note-small { color: var(--muted); font-size: .8rem; }
 
@@ -152,43 +175,109 @@
   <h1>Pentatonik-<span>Trainer</span></h1>
   <nav class="tabs" id="tabs">
     <button data-tab="board" class="active">Griffbrett</button>
+    <button data-tab="runs">Läufe</button>
     <button data-tab="metro">Metronom</button>
   </nav>
 </header>
 
 <main>
+  <!-- ===================== Tonart (für Griffbrett und Läufe) ===================== -->
+  <div class="card controls" id="keyCard">
+    <label class="field"><span>Grundton</span><select id="root"></select></label>
+    <div class="field"><span>Tonleiter</span>
+      <div class="seg" id="scale">
+        <button data-v="minor">Moll</button><button data-v="major">Dur</button>
+      </div>
+    </div>
+    <div class="field"><span>Beschriftung</span>
+      <div class="seg" id="labels">
+        <button data-v="notes">Töne</button><button data-v="intervals">Intervalle</button><button data-v="none">Aus</button>
+      </div>
+    </div>
+    <label class="toggle blue"><input type="checkbox" id="blue"><span>Blue Note</span></label>
+  </div>
+
   <!-- ===================== Tab: Griffbrett ===================== -->
   <section id="tab-board" class="tab active">
     <div class="card controls">
-      <label class="field"><span>Grundton</span><select id="root"></select></label>
-      <div class="field"><span>Tonleiter</span>
-        <div class="seg" id="scale">
-          <button data-v="minor">Moll</button><button data-v="major">Dur</button>
-        </div>
-      </div>
       <div class="field"><span>Position</span>
         <div class="seg" id="position">
           <button data-v="0">Alle</button><button data-v="1">1</button><button data-v="2">2</button>
           <button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button>
         </div>
       </div>
-      <div class="field"><span>Beschriftung</span>
-        <div class="seg" id="labels">
-          <button data-v="notes">Töne</button><button data-v="intervals">Intervalle</button><button data-v="none">Aus</button>
-        </div>
-      </div>
-      <label class="toggle"><input type="checkbox" id="blue"><span>Blue Note</span></label>
     </div>
-
     <div class="info" id="info"></div>
     <div class="rotate-hint">Tipp: Dreh dein Handy quer, dann siehst du mehr vom Griffbrett.</div>
-    <div class="board-wrap" id="boardWrap"><svg id="board" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="board-wrap" id="boardWrap"><svg id="board" class="board" xmlns="http://www.w3.org/2000/svg"></svg></div>
     <div class="legend">
       <span><i style="background:var(--root)"></i>Grundton</span>
       <span><i style="background:var(--accent)"></i>Pentatonik-Ton</span>
       <span><i style="background:var(--blue)"></i>Blue Note</span>
     </div>
     <p class="hint">Tippe auf einen Ton, um ihn zu hören.</p>
+  </section>
+
+  <!-- ===================== Tab: Läufe ===================== -->
+  <section id="tab-runs" class="tab">
+    <div class="card controls">
+      <label class="field"><span>Lauf</span>
+        <select id="runPattern">
+          <option value="box">Box (eine Position)</option>
+          <option value="walk">Alle 5 Positionen nacheinander</option>
+          <option value="diagonal">Diagonal übers Griffbrett (3 Töne/Saite)</option>
+          <option value="range">Eigener Bundbereich</option>
+        </select>
+      </label>
+      <div class="field" id="runPosField"><span>Position</span>
+        <div class="seg" id="runPos">
+          <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button>
+          <button data-v="4">4</button><button data-v="5">5</button>
+        </div>
+      </div>
+      <div class="field" id="runRangeField"><span>Bundbereich</span>
+        <div class="range-pick"><select id="rangeFrom"></select><span>bis</span><select id="rangeTo"></select></div>
+      </div>
+      <div class="field"><span>Richtung</span>
+        <div class="seg" id="runDir">
+          <button data-v="up">Auf</button><button data-v="down">Ab</button><button data-v="updown">Auf &amp; Ab</button>
+        </div>
+      </div>
+      <div class="field"><span>Sequenz</span>
+        <div class="seg" id="runSeq">
+          <button data-v="linear">Linear</button><button data-v="g3">3er</button>
+          <button data-v="g4">4er</button><button data-v="thirds">Terzen</button>
+        </div>
+      </div>
+      <div class="field"><span>Rhythmus</span>
+        <div class="seg" id="runRhythm">
+          <button data-v="eighth">Achtel</button><button data-v="triplet">Triolen</button><button data-v="sixteenth">16tel</button>
+        </div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="runSound"><span>Ton mitspielen</span></label>
+      <label class="toggle"><input type="checkbox" id="runLoop"><span>Wiederholen</span></label>
+      <label class="toggle"><input type="checkbox" id="countIn"><span>1 Takt vorzählen</span></label>
+    </div>
+
+    <div class="card run-bar">
+      <button id="runBtn" class="bigbtn primary">▶ Lauf starten</button>
+      <div class="run-info" id="runInfo"></div>
+    </div>
+
+    <div class="rotate-hint">Tipp: Dreh dein Handy quer, dann siehst du mehr vom Griffbrett.</div>
+    <div class="board-wrap" id="runWrap"><svg id="runBoard" class="board" xmlns="http://www.w3.org/2000/svg"></svg></div>
+
+    <div class="card">
+      <h2>Tempo-Trainer</h2>
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="trainerOn"><span>An</span></label>
+        <label class="field"><span>Start-BPM</span><input type="number" id="trainerStart" min="40" max="240" inputmode="numeric"></label>
+        <label class="field"><span>Ziel-BPM</span><input type="number" id="trainerTarget" min="40" max="240" inputmode="numeric"></label>
+        <label class="field"><span>+ BPM</span><input type="number" id="trainerInc" min="1" max="20" inputmode="numeric"></label>
+        <label class="field"><span>alle … Takte</span><input type="number" id="trainerEvery" min="1" max="32" inputmode="numeric"></label>
+      </div>
+      <div class="trainer-status" id="trainerStatus"></div>
+    </div>
   </section>
 
   <!-- ===================== Tab: Metronom ===================== -->
@@ -214,11 +303,12 @@
         </div>
         <span class="note-small" id="subdivNote"></span>
       </div>
-      <label class="field"><span>Lautstärke</span>
+      <label class="field"><span>Lautstärke Klick</span>
         <input type="range" id="volume" min="0" max="1" step="0.05" aria-label="Lautstärke">
       </label>
       <div class="beats big" id="beatsBig"></div>
-      <p class="hint">Kein Ton auf dem iPhone? Prüfe den Stummschalter an der Seite und die Lautstärke.</p>
+      <p class="hint">Der Tempo-Trainer (im Tab „Läufe“) gilt auch fürs Metronom.<br>
+        Kein Ton auf dem iPhone? Prüfe den Stummschalter an der Seite und die Lautstärke.</p>
     </div>
   </section>
 </main>
@@ -231,7 +321,7 @@
     <span><b id="bpmBar">80</b><small>BPM</small></span>
     <button data-d="1" aria-label="Schneller">+</button>
   </div>
-  <button id="play" class="play" aria-label="Metronom starten">▶</button>
+  <button id="play" class="play" aria-label="Start">▶</button>
 </footer>
 
 <script>
@@ -266,10 +356,30 @@
     position: 1,        // 0 = alle, 1–5 = Box
     blue: false,
     labels: 'notes',
+    // Metronom
     bpm: 80,
     timeSig: '4/4',
     subdiv: 1,
-    volume: 0.8
+    volume: 0.8,
+    // Läufe
+    runPattern: 'box',
+    runPos: 1,
+    rangeFrom: 5,
+    rangeTo: 8,
+    runDir: 'updown',
+    runSeq: 'linear',
+    runRhythm: 'eighth',
+    runSound: true,
+    runLoop: true,
+    countIn: true,
+    // Tempo-Trainer
+    trainerOn: false,
+    trainerStart: 60,
+    trainerTarget: 100,
+    trainerInc: 2,
+    trainerEvery: 4,
+    // Bestwerte pro Übung
+    best: {}
   };
 
   function loadState() {
@@ -283,6 +393,7 @@
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* ignorieren */ }
   }
   const state = loadState();
+  if (!state.best || typeof state.best !== 'object') state.best = {};
   state.bpm = clamp(Math.round(Number(state.bpm) || 80), 40, 240);
 
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
@@ -293,6 +404,7 @@
   const pcOf = (midi) => ((midi % 12) + 12) % 12;              // Tonklasse 0–11
   const relPc = (midi) => ((midi - state.root) % 12 + 12) % 12; // Intervall über dem Grundton
   const scaleInfo = () => SCALES[state.scale];
+  const isScaleTone = (midi) => scaleInfo().steps.includes(relPc(midi));
 
   // Liefert 'root' | 'scale' | 'blue' | null
   function noteType(midi) {
@@ -312,6 +424,8 @@
     return r === sc.blue ? sc.blueLabel : '';
   }
 
+  const keyOf = (s, f) => s + '-' + f;
+
   /* Die 5 Positionen (CAGED-Boxen):
      Position p beginnt auf der tiefen E-Saite mit der p-ten Skalenstufe.
      Danach folgen aufsteigend jeweils 2 Skalentöne pro Saite.
@@ -324,60 +438,170 @@
     const shapes = [];
     for (const octave of [-12, 0, 12]) {
       const startMidi = TUNING[0] + baseStart + octave;
-      // 12 aufsteigende Skalentöne ab dem Startton sammeln
       const tones = [];
-      for (let m = startMidi; tones.length < 12; m++) {
-        if (sc.steps.includes(relPc(m))) tones.push(m);
-      }
+      for (let m = startMidi; tones.length < 12; m++) if (isScaleTone(m)) tones.push(m);
       const notes = [];
       for (let s = 0; s < 6; s++) {
-        for (let k = 0; k < 2; k++) {
-          const midi = tones[s * 2 + k];
-          notes.push({ s, f: midi - TUNING[s] });
-        }
+        for (let k = 0; k < 2; k++) notes.push({ s, f: tones[s * 2 + k] - TUNING[s] });
       }
       if (notes.every(n => n.f >= 0 && n.f <= FRETS)) shapes.push(notes);
     }
     return shapes;
   }
 
-  // Bundbereich einer Box
   function shapeRange(shape) {
     let min = Infinity, max = -Infinity;
     for (const n of shape) { min = Math.min(min, n.f); max = Math.max(max, n.f); }
     return { min, max };
   }
 
-  // Menge aller aktiven Griffbrett-Punkte ("saite-bund") der gewählten Position
-  function activeSet() {
+  // Aktive Punkte der Box im Griffbrett-Tab
+  function boxActiveSet() {
     const set = new Set();
-    if (state.position === 0) return set;
+    if (state.position === 0) return null; // null = alles anzeigen
     const sc = scaleInfo();
     for (const shape of boxShapes(state.position - 1)) {
-      shape.forEach(n => set.add(n.s + '-' + n.f));
+      shape.forEach(n => set.add(keyOf(n.s, n.f)));
       if (state.blue) {
         const { min, max } = shapeRange(shape);
-        for (let s = 0; s < 6; s++) {
-          for (let f = min; f <= max; f++) {
-            if (relPc(TUNING[s] + f) === sc.blue) set.add(s + '-' + f);
-          }
-        }
+        for (let s = 0; s < 6; s++)
+          for (let f = min; f <= max; f++)
+            if (relPc(TUNING[s] + f) === sc.blue) set.add(keyOf(s, f));
       }
     }
     return set;
   }
 
   /* =========================================================
-     4) Griffbrett zeichnen (SVG)
+     4) Läufe bauen
      ========================================================= */
-  const G = {
-    LEFT: 30,      // Platz für Saitennamen
-    OPEN: 36,      // Bereich für Leersaiten vor dem Sattel
-    FW: 54,        // Bundbreite
-    TOP: 24,       // Abstand oben bis zur hohen e-Saite
-    SP: 30,        // Saitenabstand
-    R: 11.5        // Radius der Ton-Punkte
-  };
+
+  /* Aufsteigender Weg durch einen Bundbereich:
+     Saite für Saite von tief nach hoch. Auf jeder Saite nur Töne, die höher sind als der
+     letzte Ton und nicht bequemer auf der nächsten Saite im Bereich liegen.
+     Für eine Position entsteht so genau die klassische Box. */
+  function areaPath(fmin, fmax, withBlue) {
+    const path = [];
+    let last = -Infinity;
+    for (let s = 0; s < 6; s++) {
+      const limit = s < 5 ? TUNING[s + 1] + fmin : Infinity;
+      for (let f = fmin; f <= fmax; f++) {
+        const midi = TUNING[s] + f;
+        const t = noteType(midi);
+        if (!t || (t === 'blue' && !withBlue)) continue;
+        if (midi > last && midi < limit) { path.push({ s, f, midi }); last = midi; }
+      }
+    }
+    return path;
+  }
+
+  // Erste passende Box (tiefste Lage) einer Position
+  function boxRange(p) {
+    const shapes = boxShapes(p);
+    return shapes.length ? shapeRange(shapes[0]) : { min: 0, max: 4 };
+  }
+
+  // Diagonal: 3 Töne pro Saite, wandert über das Griffbrett nach oben
+  function diagonalPath() {
+    const rootFret = ((state.root - pcOf(TUNING[0])) % 12 + 12) % 12;
+    const build = (startFret) => {
+      const tones = [];
+      for (let m = TUNING[0] + startFret; tones.length < 18; m++) if (isScaleTone(m)) tones.push(m);
+      const path = tones.map((midi, i) => {
+        const s = Math.floor(i / 3);
+        return { s, f: midi - TUNING[s], midi };
+      });
+      return path.every(n => n.f >= 0 && n.f <= FRETS) ? path : null;
+    };
+    // Bevorzugt am Grundton starten, sonst den höchsten Skalenton darunter, der noch passt
+    for (let f = rootFret; f >= 0; f--) {
+      if (!isScaleTone(TUNING[0] + f)) continue;
+      const p = build(f);
+      if (p) return p;
+    }
+    return build(0) || [];
+  }
+
+  // Sequenzen auf einen Weg anwenden
+  function applySeq(path, seq) {
+    const n = path.length;
+    const groups = { g3: 3, g4: 4 };
+    if (groups[seq]) {
+      const g = groups[seq];
+      if (n < g) return path.slice();
+      const out = [];
+      for (let i = 0; i + g <= n; i++) out.push(...path.slice(i, i + g));
+      return out;
+    }
+    if (seq === 'thirds') {
+      if (n < 3) return path.slice();
+      const out = [];
+      for (let i = 0; i + 2 < n; i++) out.push(path[i], path[i + 2]);
+      return out;
+    }
+    return path.slice();
+  }
+
+  // Liefert die einzelnen aufsteigenden Abschnitte des gewählten Laufs
+  function runSegments() {
+    const withBlue = state.blue;
+    switch (state.runPattern) {
+      case 'box': {
+        const r = boxRange(state.runPos - 1);
+        return [areaPath(r.min, r.max, withBlue)];
+      }
+      case 'range':
+        return [areaPath(Math.min(state.rangeFrom, state.rangeTo), Math.max(state.rangeFrom, state.rangeTo), withBlue)];
+      case 'diagonal':
+        return [diagonalPath()];
+      case 'walk': {
+        // Alle 5 Boxen von tief nach hoch: Box auf, nächste Box ab, usw.
+        const ranges = [0, 1, 2, 3, 4].map(boxRange).sort((a, b) => a.min - b.min);
+        return ranges.map((r, i) => {
+          const p = areaPath(r.min, r.max, withBlue);
+          return i % 2 ? p.reverse() : p;
+        });
+      }
+    }
+    return [[]];
+  }
+
+  function buildRun() {
+    const segs = runSegments().filter(s => s.length);
+    if (!segs.length) return [];
+    const seq = state.runSeq;
+    const forward = [].concat(...segs.map(s => applySeq(s, seq)));
+    const backward = [].concat(...segs.slice().reverse().map(s => applySeq(s.slice().reverse(), seq)));
+    let run;
+    if (state.runDir === 'up') run = forward;
+    else if (state.runDir === 'down') run = backward;
+    else {
+      const back = backward.slice();
+      // Doppelten Wendeton vermeiden
+      if (back.length && forward.length && back[0].midi === forward[forward.length - 1].midi &&
+          back[0].s === forward[forward.length - 1].s) back.shift();
+      run = forward.concat(back);
+    }
+    // Beim Wiederholen den doppelten Start-/Endton entfernen
+    if (state.runLoop && run.length > 1) {
+      const a = run[0], b = run[run.length - 1];
+      if (a.s === b.s && a.f === b.f) run = run.slice(0, -1);
+    }
+    return run;
+  }
+
+  // Schlüssel einer Übung für die Bestwerte (unabhängig vom Grundton)
+  function exerciseKey() {
+    let where = state.runPattern;
+    if (where === 'box') where += state.runPos;
+    if (where === 'range') where += Math.min(state.rangeFrom, state.rangeTo) + '-' + Math.max(state.rangeFrom, state.rangeTo);
+    return [state.scale, where, state.runDir, state.runSeq, state.runRhythm, state.blue ? 'blue' : ''].join('|');
+  }
+
+  /* =========================================================
+     5) Griffbrett zeichnen (SVG) – wird von beiden Tabs genutzt
+     ========================================================= */
+  const G = { LEFT: 30, OPEN: 36, FW: 54, TOP: 24, SP: 30, R: 11.5 };
   G.NUT_X = G.LEFT + G.OPEN;
   G.W = G.NUT_X + FRETS * G.FW + 12;
   G.H = G.TOP + G.SP * 5 + 42;
@@ -385,34 +609,34 @@
   const xOfFret = (f) => f === 0 ? G.LEFT + G.OPEN / 2 : G.NUT_X + (f - 0.5) * G.FW;
   const yOfString = (s) => G.TOP + (5 - s) * G.SP; // hohe e-Saite oben
 
-  function renderBoard() {
-    const svg = $('#board');
+  // active: Set mit hervorgehobenen Punkten oder null (= alle Skalentöne hervorheben)
+  function renderBoard(svg, active) {
     svg.setAttribute('width', G.W);
     svg.setAttribute('height', G.H);
     svg.setAttribute('viewBox', `0 0 ${G.W} ${G.H}`);
 
     const p = [];
     const boardTop = G.TOP - 14, boardH = G.SP * 5 + 28;
-    p.push(`<defs><linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+    const gid = 'wood-' + svg.id;
+    p.push(`<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#3d2c20"/><stop offset="1" stop-color="#2a1e15"/></linearGradient></defs>`);
-    p.push(`<rect x="${G.NUT_X}" y="${boardTop}" width="${FRETS * G.FW}" height="${boardH}" rx="3" fill="url(#wood)"/>`);
+    p.push(`<rect x="${G.NUT_X}" y="${boardTop}" width="${FRETS * G.FW}" height="${boardH}" rx="3" fill="url(#${gid})"/>`);
 
-    // Bundmarkierungen (Inlays)
+    // Bundmarkierungen
     const midY = G.TOP + G.SP * 2.5;
     [3, 5, 7, 9, 15, 17, 19, 21].forEach(f =>
       p.push(`<circle cx="${xOfFret(f)}" cy="${midY}" r="6" fill="#e6d6b5" opacity=".28"/>`));
     [G.TOP + G.SP * 1.5, G.TOP + G.SP * 3.5].forEach(y =>
       p.push(`<circle cx="${xOfFret(12)}" cy="${y}" r="6" fill="#e6d6b5" opacity=".28"/>`));
 
-    // Bundstäbchen
+    // Bundstäbchen und Sattel
     for (let f = 1; f <= FRETS; f++) {
       const x = G.NUT_X + f * G.FW;
       p.push(`<line x1="${x}" y1="${boardTop}" x2="${x}" y2="${boardTop + boardH}" stroke="#a7adb6" stroke-width="2" opacity=".75"/>`);
     }
-    // Sattel
     p.push(`<rect x="${G.NUT_X - 5}" y="${boardTop}" width="6" height="${boardH}" rx="2" fill="#ece6d8"/>`);
 
-    // Saiten + Saitennamen
+    // Saiten + Namen
     for (let s = 0; s < 6; s++) {
       const y = yOfString(s);
       const w = (2.6 - s * 0.32).toFixed(2);
@@ -428,19 +652,17 @@
     }
 
     // Töne
-    const active = activeSet();
-    const showAll = state.position === 0;
     for (let s = 0; s < 6; s++) {
       for (let f = 0; f <= FRETS; f++) {
         const midi = TUNING[s] + f;
         const type = noteType(midi);
         if (!type) continue;
-        const key = s + '-' + f;
-        const inBox = showAll || active.has(key);
-        if (type === 'blue' && !inBox) continue; // Blue Notes nur innerhalb der Box
-        const lbl = inBox ? labelFor(midi) : '';
-        p.push(`<g class="note ${type}${inBox ? '' : ' dim'}" data-midi="${midi}" data-key="${key}">
-          <circle cx="${xOfFret(f)}" cy="${yOfString(s)}" r="${inBox ? G.R : G.R - 3}"/>
+        const key = keyOf(s, f);
+        const on = !active || active.has(key);
+        if (type === 'blue' && !on) continue;
+        const lbl = on ? labelFor(midi) : '';
+        p.push(`<g class="note ${type}${on ? '' : ' dim'}" data-midi="${midi}" data-key="${key}">
+          <circle cx="${xOfFret(f)}" cy="${yOfString(s)}" r="${on ? G.R : G.R - 3}"/>
           ${lbl ? `<text x="${xOfFret(f)}" y="${yOfString(s)}">${lbl}</text>` : ''}
         </g>`);
       }
@@ -448,6 +670,14 @@
     svg.innerHTML = p.join('');
   }
 
+  // Scrollt einen Griffbrett-Container, sodass der Bundbereich mittig steht
+  function scrollToFrets(wrap, min, max, smooth) {
+    const center = (xOfFret(min) + xOfFret(max)) / 2;
+    const left = Math.max(0, center - wrap.clientWidth / 2);
+    wrap.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' });
+  }
+
+  /* ---------- Griffbrett-Tab ---------- */
   function renderInfo() {
     const sc = scaleInfo();
     const tones = sc.steps.map((st, i) =>
@@ -463,26 +693,91 @@
       `<b>${NOTE_NAMES[state.root]}-${sc.name}</b> <span class="tones">${tones}${blue}</span><br><span class="pos">${pos}</span>`;
   }
 
-  // Scrollt das Griffbrett zur gewählten Box
-  function scrollToBox(smooth) {
-    if (state.position === 0) return;
-    const shapes = boxShapes(state.position - 1);
-    if (!shapes.length) return;
-    const { min, max } = shapeRange(shapes[0]);
-    const wrap = $('#boardWrap');
-    const center = (xOfFret(min) + xOfFret(max)) / 2;
-    const left = Math.max(0, center - wrap.clientWidth / 2);
-    wrap.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' });
-  }
-
   function updateBoard(scroll) {
     renderInfo();
-    renderBoard();
-    if (scroll) scrollToBox(true);
+    renderBoard($('#board'), boxActiveSet());
+    if (scroll && state.position > 0) {
+      const r = boxRange(state.position - 1);
+      scrollToFrets($('#boardWrap'), r.min, r.max, true);
+    }
+  }
+
+  /* ---------- Läufe-Tab ---------- */
+  const run = { path: [], idx: 0, playing: false, armed: false, startAtBar: 1, els: new Map(), curEl: null };
+
+  function renderRunBoard() {
+    const active = new Set(run.path.map(n => keyOf(n.s, n.f)));
+    const svg = $('#runBoard');
+    renderBoard(svg, active);
+    run.els = new Map($$('#runBoard .note').map(g => [g.dataset.key, g]));
+    run.curEl = null;
+  }
+
+  function scrollRunToStart(smooth) {
+    if (!run.path.length) return;
+    const frets = run.path.map(n => n.f);
+    const min = Math.min(...frets), max = Math.max(...frets);
+    const wrap = $('#runWrap');
+    if (max - min > 10) scrollToFrets(wrap, run.path[0].f, run.path[0].f + 4, smooth);
+    else scrollToFrets(wrap, min, max, smooth);
+  }
+
+  function updateRunInfo() {
+    const best = state.best[exerciseKey()];
+    const status = run.playing ? `Ton <b>${run.shownIdx || 1}</b> / ${run.path.length}`
+      : run.armed ? 'Startet mit dem nächsten Takt …'
+      : `<b>${run.path.length}</b> Töne`;
+    $('#runInfo').innerHTML = `${status}<br>` +
+      (best ? `<span class="best">Bestwert: ${best} BPM</span>` : 'Noch kein Bestwert für diese Übung');
+  }
+
+  function updateRunButton() {
+    const active = run.playing || run.armed;
+    const b = $('#runBtn');
+    b.textContent = active ? '■ Lauf stoppen' : '▶ Lauf starten';
+    b.classList.toggle('primary', !active);
+    b.classList.toggle('stop', active);
+    $('#runBoard').classList.toggle('playing', active);
+  }
+
+  function updateRunFields() {
+    $('#runPosField').classList.toggle('hidden', state.runPattern !== 'box');
+    $('#runRangeField').classList.toggle('hidden', state.runPattern !== 'range');
+  }
+
+  // Nach jeder Änderung: Lauf neu bauen; läuft er gerade, ab dem nächsten Takt neu starten
+  function refreshRun(scroll) {
+    run.path = buildRun();
+    renderRunBoard();
+    if (run.playing || run.armed) {
+      run.playing = false;
+      run.armed = true;
+      run.idx = 0;
+      run.startAtBar = tr.bar + 1;
+    }
+    updateRunFields();
+    updateRunInfo();
+    updateRunButton();
+    if (scroll) scrollRunToStart(true);
+  }
+
+  function setCurrentNote(key) {
+    if (run.curEl) run.curEl.classList.remove('cur');
+    run.curEl = key ? run.els.get(key) || null : null;
+    if (!run.curEl) return;
+    run.curEl.classList.add('cur');
+    // Aktuellen Ton im sichtbaren Bereich halten
+    if (state.tab !== 'runs') return;
+    const wrap = $('#runWrap');
+    const f = Number(key.split('-')[1]);
+    const x = xOfFret(f);
+    if (x < wrap.scrollLeft + 50 || x > wrap.scrollLeft + wrap.clientWidth - 50) {
+      wrap.scrollTo({ left: Math.max(0, x - wrap.clientWidth * 0.3), behavior: 'smooth' });
+    }
   }
 
   /* =========================================================
-     5) Audio (Web Audio API)
+     6) Audio (Web Audio API)
      ========================================================= */
   let ctx = null, master = null;
 
@@ -500,10 +795,11 @@
     return ctx;
   }
 
-  // Einfacher gezupfter Gitarrenton
-  function pluck(midi) {
+  // Einfacher gezupfter Gitarrenton, optional zu einem geplanten Zeitpunkt
+  function pluck(midi, when, level) {
     const c = ensureAudio();
-    const t = c.currentTime + 0.01;
+    const t = Math.max(when || 0, c.currentTime + 0.005);
+    const peak = level || 0.4;
     const freq = 440 * Math.pow(2, (midi - 69) / 12);
 
     const o1 = c.createOscillator(); o1.type = 'triangle'; o1.frequency.value = freq;
@@ -514,29 +810,11 @@
     lp.frequency.exponentialRampToValueAtTime(freq * 1.5, t + 0.9);
     const env = c.createGain();
     env.gain.setValueAtTime(0.0001, t);
-    env.gain.exponentialRampToValueAtTime(0.4, t + 0.005);
-    env.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+    env.gain.exponentialRampToValueAtTime(peak, t + 0.005);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
 
     o1.connect(lp); o2.connect(mix2).connect(lp); lp.connect(env).connect(master);
-    o1.start(t); o2.start(t); o1.stop(t + 1.7); o2.stop(t + 1.7);
-  }
-
-  /* =========================================================
-     6) Metronom (Lookahead-Scheduler auf der Audio-Uhr)
-     ========================================================= */
-  const LOOKAHEAD = 0.12;   // Sekunden im Voraus planen
-  const INTERVAL_MS = 25;   // Wie oft der Scheduler läuft
-
-  const metro = { running: false, timer: null, nextTime: 0, tick: 0, queue: [], raf: null };
-
-  // Takt-Struktur: Schläge pro Takt und Klicks pro Schlag
-  function meter() {
-    switch (state.timeSig) {
-      case '6/8':  return { beats: 2, sub: 3, compound: true };  // Puls = punktierte Viertel
-      case '12/8': return { beats: 4, sub: 3, compound: true };
-      case '3/4':  return { beats: 3, sub: state.subdiv, compound: false };
-      default:     return { beats: 4, sub: state.subdiv, compound: false };
-    }
+    o1.start(t); o2.start(t); o1.stop(t + 1.5); o2.stop(t + 1.5);
   }
 
   function playClick(kind, t) {
@@ -552,56 +830,180 @@
     o.start(t); o.stop(t + 0.06);
   }
 
-  function scheduler() {
-    while (metro.nextTime < ctx.currentTime + LOOKAHEAD) {
-      const m = meter();
-      const total = m.beats * m.sub;
-      const i = metro.tick % total;
-      const beat = Math.floor(i / m.sub);
-      const sub = i % m.sub;
-      const kind = i === 0 ? 'accent' : sub === 0 ? 'beat' : 'sub';
-      playClick(kind, metro.nextTime);
-      if (sub === 0) metro.queue.push({ time: metro.nextTime, beat });
+  /* =========================================================
+     7) Transport: ein gemeinsamer Takt für Metronom, Läufe und Tempo-Trainer
+        Lookahead-Scheduler auf der Audio-Uhr mit 12 Rasterschritten pro Schlag
+        (teilbar durch 1, 2, 3, 4 und 6 → Viertel, Achtel, Triolen, 16tel).
+     ========================================================= */
+  const GRID = 12;
+  const LOOKAHEAD = 0.12;
+  const INTERVAL_MS = 25;
 
-      // Tempo wird live übernommen
-      metro.nextTime += 60 / state.bpm / m.sub;
-      metro.tick = (i + 1) % total;
+  const tr = { running: false, timer: null, raf: null, nextTime: 0, step: 0, bar: 0, trainerBars: 0, queue: [] };
+
+  function meter() {
+    switch (state.timeSig) {
+      case '6/8':  return { beats: 2, sub: 3, compound: true };  // Puls = punktierte Viertel
+      case '12/8': return { beats: 4, sub: 3, compound: true };
+      case '3/4':  return { beats: 3, sub: state.subdiv, compound: false };
+      default:     return { beats: 4, sub: state.subdiv, compound: false };
     }
   }
 
-  // Visuelle Anzeige synchron zur Audio-Uhr
+  // Töne pro Schlag im Lauf
+  function notesPerBeat() {
+    const compound = meter().compound;
+    if (state.runRhythm === 'sixteenth') return compound ? 6 : 4;
+    if (state.runRhythm === 'triplet') return 3;
+    return compound ? 3 : 2;
+  }
+
+  function onBarStart() {
+    tr.bar++;
+    // Lauf beginnt immer auf der Eins
+    if (run.armed && tr.bar >= run.startAtBar) {
+      run.armed = false;
+      run.playing = run.path.length > 0;
+      run.idx = 0;
+      uiDirty = true;
+    }
+    // Tempo-Trainer
+    if (state.trainerOn && tr.bar > 1) {
+      tr.trainerBars++;
+      if (tr.trainerBars >= state.trainerEvery) {
+        tr.trainerBars = 0;
+        if (state.bpm < state.trainerTarget) setBpm(Math.min(state.trainerTarget, state.bpm + state.trainerInc));
+        else if (state.bpm > state.trainerTarget) setBpm(Math.max(state.trainerTarget, state.bpm - state.trainerInc));
+        updateTrainerStatus();
+      }
+    }
+  }
+
+  function recordBest() {
+    const k = exerciseKey();
+    if (!state.best[k] || state.bpm > state.best[k]) {
+      state.best[k] = state.bpm;
+      saveState();
+    }
+    uiDirty = true;
+  }
+
+  function scheduler() {
+    while (tr.nextTime < ctx.currentTime + LOOKAHEAD) {
+      const m = meter();
+      const stepsPerBar = m.beats * GRID;
+      if (tr.step >= stepsPerBar) tr.step = 0;
+      const s = tr.step, t = tr.nextTime;
+
+      if (s === 0) onBarStart();
+
+      // Metronom-Klick
+      const clickEvery = GRID / m.sub;
+      if (s % clickEvery === 0) {
+        const kind = s === 0 ? 'accent' : s % GRID === 0 ? 'beat' : 'sub';
+        playClick(kind, t);
+        if (s % GRID === 0) tr.queue.push({ time: t, type: 'beat', beat: s / GRID });
+      }
+
+      // Lauf-Ton
+      if (run.playing && s % (GRID / notesPerBeat()) === 0) {
+        const note = run.path[run.idx];
+        if (note) {
+          if (state.runSound) pluck(note.midi, t, 0.32);
+          tr.queue.push({ time: t, type: 'note', key: keyOf(note.s, note.f), idx: run.idx + 1 });
+        }
+        run.idx++;
+        if (run.idx >= run.path.length) {
+          recordBest();
+          if (state.runLoop) run.idx = 0;
+          else {
+            run.playing = false;
+            tr.queue.push({ time: t + 60 / state.bpm / notesPerBeat(), type: 'runEnd' });
+          }
+        }
+      }
+
+      tr.nextTime += 60 / state.bpm / GRID; // Tempoänderungen greifen sofort
+      tr.step = s + 1;
+    }
+  }
+
+  // Anzeige synchron zur Audio-Uhr
+  let uiDirty = false;
   function drawLoop() {
-    if (!metro.running) return;
-    let current = null;
-    while (metro.queue.length && metro.queue[0].time <= ctx.currentTime) current = metro.queue.shift();
-    if (current) highlightBeat(current.beat);
-    metro.raf = requestAnimationFrame(drawLoop);
+    if (!tr.running) return;
+    while (tr.queue.length && tr.queue[0].time <= ctx.currentTime) {
+      const ev = tr.queue.shift();
+      if (ev.type === 'beat') highlightBeat(ev.beat);
+      else if (ev.type === 'note') { setCurrentNote(ev.key); run.shownIdx = ev.idx; uiDirty = true; }
+      else if (ev.type === 'runEnd') { setCurrentNote(null); uiDirty = true; }
+    }
+    if (uiDirty) {
+      uiDirty = false;
+      updateRunInfo();
+      updateRunButton();
+    }
+    tr.raf = requestAnimationFrame(drawLoop);
   }
 
-  function startMetronome() {
+  function startTransport(withRun) {
     ensureAudio();
-    metro.running = true;
-    metro.tick = 0;
-    metro.queue = [];
-    metro.nextTime = ctx.currentTime + 0.08;
+    tr.running = true;
+    tr.step = 0;
+    tr.bar = 0;
+    tr.trainerBars = 0;
+    tr.queue = [];
+    tr.nextTime = ctx.currentTime + 0.08;
+    if (state.trainerOn) setBpm(state.trainerStart);
+    run.playing = false;
+    run.shownIdx = 0;
+    run.armed = !!withRun && run.path.length > 0;
+    run.idx = 0;
+    run.startAtBar = state.countIn ? 2 : 1;
+    if (withRun) scrollRunToStart(true);
     scheduler();
-    metro.timer = setInterval(scheduler, INTERVAL_MS);
-    metro.raf = requestAnimationFrame(drawLoop);
+    tr.timer = setInterval(scheduler, INTERVAL_MS);
+    tr.raf = requestAnimationFrame(drawLoop);
     const btn = $('#play');
-    btn.textContent = '■'; btn.classList.add('running'); btn.setAttribute('aria-label', 'Metronom stoppen');
+    btn.textContent = '■'; btn.classList.add('running'); btn.setAttribute('aria-label', 'Stopp');
+    updateTrainerStatus();
+    updateRunInfo();
+    updateRunButton();
   }
 
-  function stopMetronome() {
-    metro.running = false;
-    clearInterval(metro.timer);
-    cancelAnimationFrame(metro.raf);
-    metro.queue = [];
+  function stopTransport() {
+    tr.running = false;
+    clearInterval(tr.timer);
+    cancelAnimationFrame(tr.raf);
+    tr.queue = [];
+    run.playing = false;
+    run.armed = false;
     highlightBeat(-1);
+    setCurrentNote(null);
     const btn = $('#play');
-    btn.textContent = '▶'; btn.classList.remove('running'); btn.setAttribute('aria-label', 'Metronom starten');
+    btn.textContent = '▶'; btn.classList.remove('running'); btn.setAttribute('aria-label', 'Start');
+    updateTrainerStatus();
+    updateRunInfo();
+    updateRunButton();
   }
 
-  function toggleMetronome() { metro.running ? stopMetronome() : startMetronome(); }
+  // Play-Taste unten: im Tab „Läufe“ mit Lauf, sonst nur Metronom
+  function togglePlay() {
+    if (tr.running) stopTransport();
+    else startTransport(state.tab === 'runs');
+  }
+
+  // Lauf-Taste im Tab „Läufe“
+  function toggleRun() {
+    if (run.playing || run.armed) { stopTransport(); return; }
+    if (!tr.running) { startTransport(true); return; }
+    // Metronom läuft schon: Lauf ab dem nächsten Takt einsetzen
+    run.armed = run.path.length > 0;
+    run.idx = 0;
+    run.startAtBar = tr.bar + 1;
+    updateRunInfo();
+    updateRunButton();
+  }
 
   /* ---------- Takt-Punkte ---------- */
   function renderBeatDots() {
@@ -624,7 +1026,6 @@
     saveState();
   }
 
-  // Tap-Tempo: Durchschnitt der letzten Abstände
   const taps = [];
   function tapTempo() {
     const now = performance.now();
@@ -633,8 +1034,7 @@
     if (taps.length > 5) taps.shift();
     if (taps.length >= 2) {
       const gaps = taps.slice(1).map((t, i) => t - taps[i]);
-      const avg = gaps.reduce((a, b) => a + b, 0) / gaps.length;
-      setBpm(60000 / avg);
+      setBpm(60000 / (gaps.reduce((a, b) => a + b, 0) / gaps.length));
     }
   }
 
@@ -644,17 +1044,46 @@
     $('#subdivNote').textContent = compound
       ? 'Bei 6/8 und 12/8 zählt das Tempo in punktierten Vierteln, die Achtel klicken automatisch mit.'
       : '';
+    // Triolen ergeben im 6/8 keinen Sinn (Achtel sind dort schon Dreiergruppen)
+    const tripBtn = $('#runRhythm button[data-v="triplet"]');
+    tripBtn.disabled = compound;
+    if (compound && state.runRhythm === 'triplet') { state.runRhythm = 'eighth'; saveState(); syncSegments(); }
+  }
+
+  /* ---------- Tempo-Trainer ---------- */
+  function updateTrainerStatus() {
+    const el = $('#trainerStatus');
+    if (!state.trainerOn) { el.innerHTML = 'Aus. Das Tempo bleibt fest.'; return; }
+    const txt = `Von <b>${state.trainerStart}</b> auf <b>${state.trainerTarget}</b> BPM, +${state.trainerInc} alle ${state.trainerEvery} Takte.`;
+    if (!tr.running) { el.innerHTML = txt + ' Startet mit ▶.'; return; }
+    const done = state.bpm === state.trainerTarget;
+    el.innerHTML = txt + `<br>Jetzt: <b>${state.bpm} BPM</b>${done ? ' · Ziel erreicht!' : ''}`;
+  }
+
+  function bindNumber(id, key, lo, hi) {
+    const el = $('#' + id);
+    el.value = state[key];
+    el.addEventListener('change', () => {
+      const v = clamp(Math.round(Number(el.value) || state[key]), lo, hi);
+      state[key] = v; el.value = v;
+      saveState();
+      updateTrainerStatus();
+    });
   }
 
   /* =========================================================
-     7) Bedienelemente verbinden
+     8) Bedienelemente verbinden
      ========================================================= */
   const SEGMENTS = [
-    { id: 'scale',    key: 'scale',    parse: String },
-    { id: 'position', key: 'position', parse: Number },
-    { id: 'labels',   key: 'labels',   parse: String },
-    { id: 'timeSig',  key: 'timeSig',  parse: String },
-    { id: 'subdiv',   key: 'subdiv',   parse: Number }
+    { id: 'scale',     key: 'scale',     parse: String },
+    { id: 'labels',    key: 'labels',    parse: String },
+    { id: 'position',  key: 'position',  parse: Number },
+    { id: 'timeSig',   key: 'timeSig',   parse: String },
+    { id: 'subdiv',    key: 'subdiv',    parse: Number },
+    { id: 'runPos',    key: 'runPos',    parse: Number },
+    { id: 'runDir',    key: 'runDir',    parse: String },
+    { id: 'runSeq',    key: 'runSeq',    parse: String },
+    { id: 'runRhythm', key: 'runRhythm', parse: String }
   ];
 
   function syncSegments() {
@@ -662,12 +1091,20 @@
       $$('#' + id + ' button').forEach(b => b.classList.toggle('active', String(state[key]) === b.dataset.v)));
   }
 
-  function onSegmentChange(key) {
-    if (['scale', 'position', 'labels'].includes(key)) updateBoard(key === 'position' || key === 'scale');
-    if (key === 'timeSig' || key === 'subdiv') {
-      metro.tick = 0;          // Takt sauber neu beginnen
-      renderBeatDots();
-      updateSubdivUi();
+  function onSettingChange(key) {
+    switch (key) {
+      case 'root': case 'scale': case 'blue':
+        updateBoard(true); refreshRun(state.tab === 'runs'); break;
+      case 'labels':
+        updateBoard(false); renderRunBoard(); break;
+      case 'position':
+        updateBoard(true); break;
+      case 'timeSig': case 'subdiv':
+        tr.step = 0; renderBeatDots(); updateSubdivUi(); break;
+      case 'runRhythm':
+        updateRunInfo(); break;
+      case 'runPos': case 'runDir': case 'runSeq': case 'runPattern': case 'range': case 'runLoop':
+        refreshRun(key !== 'runDir' && key !== 'runSeq' && key !== 'runLoop'); break;
     }
   }
 
@@ -678,37 +1115,60 @@
       state[key] = parse(b.dataset.v);
       saveState();
       syncSegments();
-      onSegmentChange(key);
+      onSettingChange(key);
     });
   });
 
-  // Grundton-Auswahl
+  // Grundton
   const rootSel = $('#root');
   rootSel.innerHTML = NOTE_NAMES.map((n, i) => `<option value="${i}">${n}</option>`).join('');
   rootSel.value = state.root;
-  rootSel.addEventListener('change', () => {
-    state.root = Number(rootSel.value);
-    saveState();
-    updateBoard(true);
-  });
+  rootSel.addEventListener('change', () => { state.root = Number(rootSel.value); saveState(); onSettingChange('root'); });
 
-  // Blue Note
-  const blueChk = $('#blue');
-  blueChk.checked = !!state.blue;
-  blueChk.addEventListener('change', () => {
-    state.blue = blueChk.checked;
-    saveState();
-    updateBoard(false);
-  });
+  // Checkboxen
+  function bindCheck(id, key, change) {
+    const el = $('#' + id);
+    el.checked = !!state[key];
+    el.addEventListener('change', () => { state[key] = el.checked; saveState(); change && change(); });
+  }
+  bindCheck('blue', 'blue', () => onSettingChange('blue'));
+  bindCheck('runSound', 'runSound');
+  bindCheck('countIn', 'countIn');
+  bindCheck('runLoop', 'runLoop', () => onSettingChange('runLoop'));
+  bindCheck('trainerOn', 'trainerOn', updateTrainerStatus);
 
-  // Ton antippen = Ton hören
-  $('#board').addEventListener('click', (e) => {
+  // Lauf-Auswahl und Bundbereich
+  const patSel = $('#runPattern');
+  patSel.value = state.runPattern;
+  patSel.addEventListener('change', () => { state.runPattern = patSel.value; saveState(); onSettingChange('runPattern'); });
+
+  const fretOpts = Array.from({ length: FRETS + 1 }, (_, f) => `<option value="${f}">${f}</option>`).join('');
+  const fromSel = $('#rangeFrom'), toSel = $('#rangeTo');
+  fromSel.innerHTML = fretOpts; toSel.innerHTML = fretOpts;
+  fromSel.value = state.rangeFrom; toSel.value = state.rangeTo;
+  const onRange = () => {
+    state.rangeFrom = Number(fromSel.value);
+    state.rangeTo = Number(toSel.value);
+    saveState();
+    onSettingChange('range');
+  };
+  fromSel.addEventListener('change', onRange);
+  toSel.addEventListener('change', onRange);
+
+  // Tempo-Trainer-Felder
+  bindNumber('trainerStart', 'trainerStart', 40, 240);
+  bindNumber('trainerTarget', 'trainerTarget', 40, 240);
+  bindNumber('trainerInc', 'trainerInc', 1, 20);
+  bindNumber('trainerEvery', 'trainerEvery', 1, 32);
+
+  // Ton antippen = Ton hören (beide Griffbretter)
+  ['#board', '#runBoard'].forEach(sel => $(sel).addEventListener('click', (e) => {
     const g = e.target.closest('.note');
     if (!g) return;
     pluck(Number(g.dataset.midi));
     g.classList.add('hit');
     setTimeout(() => g.classList.remove('hit'), 250);
-  });
+  }));
 
   // Tabs
   function showTab(tab) {
@@ -716,15 +1176,22 @@
     saveState();
     $$('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     $$('.tab').forEach(s => s.classList.toggle('active', s.id === 'tab-' + tab));
-    if (tab === 'board') requestAnimationFrame(() => scrollToBox(false));
+    $('#keyCard').classList.toggle('hidden', tab === 'metro');
+    requestAnimationFrame(() => {
+      if (tab === 'board' && state.position > 0) {
+        const r = boxRange(state.position - 1);
+        scrollToFrets($('#boardWrap'), r.min, r.max, false);
+      }
+      if (tab === 'runs' && !run.playing) scrollRunToStart(false);
+    });
   }
   $('#tabs').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-tab]');
     if (b) showTab(b.dataset.tab);
   });
 
-  // Tempo-Buttons (Metronom-Tab und untere Leiste)
-  $$('[data-d]').forEach(b => b.addEventListener('click', () => setBpm(state.bpm + Number(b.dataset.d))));
+  // Tempo
+  $$('[data-d]').forEach(b => b.addEventListener('click', () => { setBpm(state.bpm + Number(b.dataset.d)); updateTrainerStatus(); }));
   $('#bpmRange').addEventListener('input', (e) => setBpm(Number(e.target.value)));
   $('#tap').addEventListener('click', tapTempo);
 
@@ -733,27 +1200,33 @@
   vol.value = state.volume;
   vol.addEventListener('input', () => { state.volume = Number(vol.value); saveState(); });
 
-  // Play / Stop
-  $('#play').addEventListener('click', toggleMetronome);
+  // Start / Stopp
+  $('#play').addEventListener('click', togglePlay);
+  $('#runBtn').addEventListener('click', toggleRun);
   document.addEventListener('keydown', (e) => {
     if (e.code === 'Space' && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) {
       e.preventDefault();
-      toggleMetronome();
+      togglePlay();
     }
   });
 
-  // Beim Drehen des Handys die Box wieder ins Bild holen
-  window.addEventListener('orientationchange', () => setTimeout(() => scrollToBox(false), 300));
+  window.addEventListener('orientationchange', () => setTimeout(() => showTab(state.tab), 300));
 
   /* =========================================================
-     8) Start
+     9) Start
      ========================================================= */
   syncSegments();
   setBpm(state.bpm);
   renderBeatDots();
   updateSubdivUi();
   updateBoard(false);
-  showTab(state.tab === 'metro' ? 'metro' : 'board');
+  run.path = buildRun();
+  renderRunBoard();
+  updateRunFields();
+  updateRunInfo();
+  updateRunButton();
+  updateTrainerStatus();
+  showTab(['board', 'runs', 'metro'].includes(state.tab) ? state.tab : 'board');
 })();
 </script>
 </body>
