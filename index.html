@@ -1104,13 +1104,44 @@
     if (curChord) drawAllRings();
   }
 
+  /* ---------- Kameraführung für Läufe ----------
+     Der Lauf wird vorab in Abschnitte geteilt, die jeweils komplett auf den Bildschirm passen.
+     Die Ansicht bewegt sich nur beim Wechsel in einen neuen Abschnitt und zentriert dann
+     den ganzen Abschnitt. So springt das Bild nicht mehr bei jedem Ton hin und her. */
+  function computeCamera() {
+    const wrap = $('#runWrap');
+    const W = wrap.clientWidth || 360;
+    const usable = Math.max(G.FW * 3, W - 2 * (G.R + 24));   // Rand links und rechts
+    run.camWin = [];
+    run.camLeft = [];
+    let lo = 0, hi = 0, id = -1;
+    run.path.forEach((n, i) => {
+      const x = xOfFret(n.f);
+      if (id < 0 || Math.max(hi, x) - Math.min(lo, x) > usable) {
+        id++; lo = x; hi = x;                 // neuer Abschnitt
+      } else {
+        lo = Math.min(lo, x); hi = Math.max(hi, x);
+      }
+      run.camWin[i] = id;
+      run.camLeft[id] = Math.max(0, (lo + hi) / 2 - W / 2);
+    });
+    run.curWin = -1;
+    run.camWidth = W;
+  }
+
+  function moveCamera(i, smooth) {
+    if (!run.camWin || !run.camWin.length) return;
+    if ($('#runWrap').clientWidth !== run.camWidth) computeCamera();   // Bildschirm gedreht
+    const id = run.camWin[Math.max(0, Math.min(i, run.camWin.length - 1))];
+    if (id === run.curWin) return;
+    run.curWin = id;
+    $('#runWrap').scrollTo({ left: run.camLeft[id], behavior: smooth ? 'smooth' : 'auto' });
+  }
+
   function scrollRunToStart(smooth) {
     if (!run.path.length) return;
-    const frets = run.path.map(n => n.f);
-    const min = Math.min(...frets), max = Math.max(...frets);
-    const wrap = $('#runWrap');
-    if (max - min > 10) scrollToFrets(wrap, run.path[0].f, run.path[0].f + 4, smooth);
-    else scrollToFrets(wrap, min, max, smooth);
+    computeCamera();
+    moveCamera(0, smooth);
   }
 
   function updateRunInfo() {
@@ -1139,6 +1170,7 @@
   // Nach jeder Änderung: Lauf neu bauen; läuft er gerade, ab dem nächsten Takt neu starten
   function refreshRun(scroll) {
     run.path = buildRun();
+    computeCamera();
     renderRunBoard();
     if (run.playing || run.armed) {
       run.playing = false;
@@ -1152,19 +1184,13 @@
     if (scroll) scrollRunToStart(true);
   }
 
-  function setCurrentNote(key) {
+  // idx = Position des Tons im Lauf (0-basiert)
+  function setCurrentNote(key, idx) {
     if (run.curEl) run.curEl.classList.remove('cur');
     run.curEl = key ? run.els.get(key) || null : null;
     if (!run.curEl) return;
     run.curEl.classList.add('cur');
-    // Aktuellen Ton im sichtbaren Bereich halten
-    if (state.tab !== 'runs') return;
-    const wrap = $('#runWrap');
-    const f = Number(key.split('-')[1]);
-    const x = xOfFret(f);
-    if (x < wrap.scrollLeft + 50 || x > wrap.scrollLeft + wrap.clientWidth - 50) {
-      wrap.scrollTo({ left: Math.max(0, x - wrap.clientWidth * 0.3), behavior: 'smooth' });
-    }
+    if (state.tab === 'runs' && idx !== undefined) moveCamera(idx, true);
   }
 
   /* =========================================================
@@ -1632,7 +1658,7 @@
     while (tr.queue.length && tr.queue[0].time <= ctx.currentTime) {
       const ev = tr.queue.shift();
       if (ev.type === 'beat') highlightBeat(ev.beat);
-      else if (ev.type === 'note') { setCurrentNote(ev.key); run.shownIdx = ev.idx; uiDirty = true; }
+      else if (ev.type === 'note') { setCurrentNote(ev.key, ev.idx - 1); run.shownIdx = ev.idx; uiDirty = true; }
       else if (ev.type === 'runEnd') { setCurrentNote(null); uiDirty = true; }
       else if (ev.type === 'chord') showChord(ev.idx);
     }
@@ -2059,6 +2085,7 @@
   });
 
   window.addEventListener('orientationchange', () => setTimeout(() => showTab(state.tab), 300));
+  window.addEventListener('resize', () => { if (state.tab === 'runs') { computeCamera(); if (run.playing) moveCamera(run.shownIdx ? run.shownIdx - 1 : 0, false); } });
 
   /* =========================================================
      9) Start
